@@ -1,7 +1,10 @@
+%include "defines.inc"
 %include "macros.inc"
 
 global COLORS, CHARS, PIECES
 global active_piece, active_piece_state
+EXPORT dynamic_grid
+EXPORT static_grid
 EXPORT clear_set
 EXPORT cursor_visible
 
@@ -101,3 +104,9 @@ section .bss
     ; 첫 번째 정수는 조각 종류
     ; 두 번째 정수는 조각 회전 유형
     active_piece_state: resd 2
+
+    dynamic_grid: resb GRID_SIZE
+    LEN dynamic_grid
+
+    static_grid: resb REAL_SIZE
+    LEN static_grid

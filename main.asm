@@ -1,32 +1,43 @@
 default rel
 
+%include "defines.inc"
 %include "macros.inc"
-
-
-%macro SET_PIECE 1
-    mov dword [active_piece_state], %1
-    mov dword [active_piece_state+4], 0
-%endmacro
 
 
 global _start
 IMPORT clear_set
 IMPORT cursor_visible
-extern update_coordinate, active_piece_state, active_piece
+IMPORT static_grid
+extern set_grid
+
+
+%macro COLOR 1
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, [COLORS+(%1*8)]
+    mov rdx, 5
+    syscall
+%endmacro
+
+
+
+extern COLORS, CHARS
 
 
 section .text
 
 _start:
-    SET_PIECE 3
+    PRNT clear_set
 
-    call update_coordinate
+    call set_grid
 
-    mov dword [active_piece], 5
-    mov dword [active_piece+4], 3
-    call update_coordinate
+    COLOR 1
+    PRNT static_grid
+    COLOR 7
 
 _exit:
+    PRNT cursor_visible
+
     mov rax, 60
     xor rdi, rdi
     syscall
