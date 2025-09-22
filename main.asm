@@ -28,11 +28,17 @@ _start:
     ;PRNT clear_set
 
     call set_grid
+    mov byte [color_grid+276], 1
+    mov byte [color_grid+278], 1
+    mov byte [color_grid+280], 1
+    mov byte [color_grid+282], 1
+
     mov rdi, color_grid
     mov rsi, 1
     mov rdx, GRID_WIDTH
     mov rcx, GRID_HEIGHT
     call print_small_grid
+    
     call print_static_grid
 
 _exit:

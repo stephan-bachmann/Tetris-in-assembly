@@ -76,10 +76,22 @@ set_grid:
     push r13
     push r14
 
-    mov rdi, color_grid
-    mov al, 8
-    mov rcx, color_grid_len
-    rep stosb
+    ; 색 적용 테스트
+    ; mov rax, color_grid_len
+    ; xor rdx, rdx
+    ; mov rcx, 2
+    ; div rcx
+
+    ; mov rcx, rax
+    ; mov rdi, color_grid
+    ; mov ax, 0x0801
+    ; rep stosw
+
+
+   mov rdi, color_grid
+   mov al, 8
+   mov rcx, color_grid_len
+   rep stosb
 
 .dynamic:
     xor r12, r12        ; 논리 인덱스
@@ -254,18 +266,19 @@ print_static_grid:
     mov r12, static_grid
     mov r13, color_grid
 
+    xor r8, r8
     xor r14, r14    ; 인덱스
     mov r15, r12    
     
 .loop:
-    mov r8b, byte [r13+r14]
-    COLOR r8
-
     mov al, byte [r15]
     cmp al, 0xa
     je .linefeed
 
 .char:
+    xor r8, r8
+    mov r8b, byte [r13+r14]
+    COLOR r8
     mov rax, 1
     mov rdi, 1
     mov rsi, r15
@@ -288,6 +301,8 @@ print_static_grid:
 .next:
     mov r8, REAL_WIDTH
     imul r8, REAL_HEIGHT
+
+    COLOR RESET
 
     inc r14
     cmp r14, r8
