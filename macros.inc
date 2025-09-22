@@ -20,9 +20,3 @@
 %macro IMPORT 1
     extern %1, %1_len
 %endmacro
-
-; 그리드 이름, 단위 바이트, 그리드 너비
-%macro PRNT_GRID 3
-    mov rax, %2
-    mov 
-%endmacro
