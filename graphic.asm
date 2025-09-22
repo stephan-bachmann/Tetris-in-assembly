@@ -88,10 +88,11 @@ set_grid:
     ; rep stosw
 
 
-   mov rdi, color_grid
-   mov al, 8
-   mov rcx, color_grid_len
-   rep stosb
+
+    mov rdi, color_grid
+    mov al, 8
+    mov rcx, color_grid_len
+    rep stosb
 
 .dynamic:
     xor r12, r12        ; 논리 인덱스
