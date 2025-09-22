@@ -18,14 +18,14 @@ section .rodata
     LEN cursor_visible
 
 
-    C_BLACK:      db 0x1b, "[270m"
+    C_BLACK:      db 0x1b, "[90m"
     C_RED:        db 0x1b, "[91m"
     C_GREEN:      db 0x1b, "[92m"
     C_YELLOW:     db 0x1b, "[93m"
     C_BLUE:       db 0x1b, "[94m"
     C_MAGENTA:    db 0x1b, "[95m"
     C_CYAN:       db 0x1b, "[96m"
-    C_WHITE:      db 0x1b, "[97m"
+    C_WHITE:      db 0x1b, "[37m"
     C_RESET:      db 0x1b, "[00m"
 
     COLORS: 

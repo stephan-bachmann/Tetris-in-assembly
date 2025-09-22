@@ -71,7 +71,6 @@ section .text
 set_grid:
     push rbp
     mov rbp, rsp
-    sub rsp, 16
     push r12
     push r13
     push r14
@@ -90,7 +89,7 @@ set_grid:
 
     ; 색 그리드 채우기
     mov rdi, color_grid
-    mov al, 8
+    mov al, RESET
     mov rcx, color_grid_len
     rep stosb
 
@@ -181,7 +180,6 @@ set_grid:
     pop r14
     pop r13
     pop r12
-    add rsp, 16
     leave
     ret
 ;
@@ -189,9 +187,8 @@ set_grid:
 ; 작은 그리드들을 출력하는 함수
 ; input:
 ;   rdi = 그리드의 주소
-;   rsi = 그리드의 단위 바이트 수
-;   rdx = 그리드의 너비
-;   rcx = 그리드의 높이
+;   rsi = 그리드의 너비
+;   rdx = 그리드의 높이
 print_small_grid:
     push rbp
     mov rbp, rsp
@@ -199,21 +196,16 @@ print_small_grid:
     ; 총 출력할 길이
     mov r8, rsi
     imul r8, rdx
-    imul r8, rcx
-    add r8, rcx
+    add r8, rdx
 
     sub rsp, r8     ; 출력할 행 임시 저장 버퍼
     mov r9, rsp     ; 임시 버퍼 접근 주소
     push r12
     push r13
-    push r14
-    push r15
 
 
     mov r12, rdi    ; 그리드 주소
-    mov r13, rsi    ; 단위 바이트
-    mov r14, rdx    ; 그리드 너비
-    mov r15, rcx    ; 그리드 높이
+    mov r13, rsi    ; 그리드 너비
 
     xor r10, r10    ; 오프셋
     xor r11, r11    ; 행
@@ -229,7 +221,7 @@ print_small_grid:
     ; 마지막 열이면 줄바꿈 추가
     mov rax, r10
     xor rdx, rdx
-    div r14
+    div r13
     
     cmp rdx, 0
     jne .next
@@ -252,8 +244,6 @@ print_small_grid:
     syscall
 
 .ret:
-    pop r15
-    pop r14
     pop r13
     pop r12
     add rsp, r8
@@ -318,6 +308,7 @@ print_static_grid:
     jl .loop
 
 .ret:
+    COLOR RESET
     pop r14
     pop r13
     pop r12

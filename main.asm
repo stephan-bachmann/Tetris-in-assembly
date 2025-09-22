@@ -29,14 +29,18 @@ _start:
 
     call set_grid
     mov byte [color_grid+276], 1
-    mov byte [color_grid+278], 2
-    mov byte [color_grid+280], 3
-    mov byte [color_grid+282], 4
+    mov byte [color_grid+277], 2
+    mov byte [color_grid+278], 3
+    mov byte [color_grid+279], 4
+    mov byte [color_grid+280], 5
+    mov byte [color_grid+281], 6
+    mov byte [color_grid+282], 7
+    mov byte [color_grid+283], 8
+    mov byte [color_grid+284], 0
 
     mov rdi, color_grid
-    mov rsi, 1
-    mov rdx, GRID_WIDTH
-    mov rcx, GRID_HEIGHT
+    mov rsi, GRID_WIDTH
+    mov rdx, GRID_HEIGHT
     call print_small_grid
 
     call print_static_grid
