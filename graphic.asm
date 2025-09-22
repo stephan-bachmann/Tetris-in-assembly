@@ -297,6 +297,7 @@ print_static_grid:
     syscall
 
     inc r15
+    jmp .loop
 
 .next:
     mov r8, REAL_WIDTH
