@@ -22,6 +22,8 @@ Z equ 6
 
 
 global update_coordinate
+global get_logic_index
+global update_center_block_coordinate
 extern PIECES
 extern active_piece, active_piece_state
 
@@ -114,7 +116,7 @@ rotate_piece:
 ;
 
 
-; 활성 조각 상태를 보고 실제 좌표를 계산하는 함수
+; 활성 조각 상태를 보고 현재 활성 조각 좌표를 계산하는 함수
 update_coordinate:
     push rbp
     mov rbp, rsp
@@ -164,3 +166,24 @@ update_coordinate:
     ret
 ;
 
+; 행과 열을 받아 논리 인덱스를 반환하는 함수
+; input:
+;   rdi = 행
+;   rsi = 열
+; return:
+;   rax = 논리 인덱스
+get_logic_index:
+    mov rax, rdi
+    imul rax, GRID_WIDTH
+    add rax, rsi
+    ret
+;
+
+; 활성 조각의 중심 블록 좌표를 변경하는 함수
+; input:
+;   rdi = 중심 블록의 행
+;   rsi = 중심 블록의 열
+update_center_block_coordinate:
+    mov dword [active_piece], edi
+    mov dword [active_piece+4], esi
+    ret

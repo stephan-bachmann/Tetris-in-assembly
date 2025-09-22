@@ -1,12 +1,14 @@
 %include "defines.inc"
 %include "macros.inc"
 
-global COLORS, CHARS, PIECES
-global active_piece, active_piece_state
 EXPORT dynamic_grid
 EXPORT static_grid
+EXPORT color_grid
 EXPORT clear_set
 EXPORT cursor_visible
+global COLORS, CHARS, PIECES
+global active_piece, active_piece_state
+global previous_active_piece
 
 section .rodata
     clear_set: db 0x1b, "[2J", 0x1b, "[H", 0x1b, "[?25l"
@@ -24,6 +26,7 @@ section .rodata
     C_MAGENTA:    db 0x1b, "[95m"
     C_CYAN:       db 0x1b, "[96m"
     C_WHITE:      db 0x1b, "[97m"
+    C_RESET:      db 0x1b, "[00m"
 
     COLORS: 
         dq C_BLACK
@@ -34,6 +37,7 @@ section .rodata
         dq C_MAGENTA
         dq C_CYAN
         dq C_WHITE
+        dq C_RESET
 
 
     C_SPACE:    db 0xe2, 0x80, 0x82
@@ -100,6 +104,8 @@ section .rodata
 section .bss
     ; 실제 조각 좌표
     active_piece: resd 8
+    ; 직전 조각 좌표
+    previous_active_piece: resd 8
 
     ; 첫 번째 정수는 조각 종류
     ; 두 번째 정수는 조각 회전 유형
@@ -110,3 +116,6 @@ section .bss
 
     static_grid: resb REAL_SIZE
     LEN static_grid
+
+    color_grid: resb GRID_SIZE
+    LEN color_grid
