@@ -88,7 +88,7 @@ set_grid:
     ; rep stosw
 
 
-
+    ; 색 그리드 채우기
     mov rdi, color_grid
     mov al, 8
     mov rcx, color_grid_len
@@ -132,6 +132,7 @@ set_grid:
     dec r14
 
 .d_next:
+    ; 플래그로 채우기
     mov byte [dynamic_grid+r12], r14b
     
     
@@ -147,7 +148,7 @@ set_grid:
 .static:
     xor r12, r12    ; 행
     xor r13, r13    ; 열
-    xor r14, r14
+    xor r14, r14    ; 문자 코드
     mov rsi, static_grid
     
 .s_loop:
@@ -157,17 +158,22 @@ set_grid:
     call get_logic_index
     pop rsi
 
+    ; 문자 채우기
     mov rdi, dynamic_grid
     mov r14b, byte [rdi+rax]
     CHAR rsi, r14
 
+    ; 열 루프
     inc r13
     cmp r13, GRID_WIDTH
     jne .s_loop
 
+    ; 다음 행
     xor r13, r13
     mov byte [rsi], 0xa
     inc rsi
+
+    ; 행 루프
     inc r12
     cmp r12, GRID_HEIGHT
     jne .s_loop
@@ -262,56 +268,56 @@ print_static_grid:
     push r12
     push r13
     push r14
-    push r15
 
     mov r12, static_grid
     mov r13, color_grid
 
     xor r8, r8
     xor r14, r14    ; 인덱스
-    mov r15, r12    
     
 .loop:
-    mov al, byte [r15]
+    mov al, byte [r12]
     cmp al, 0xa
     je .linefeed
 
 .char:
+    ; 문자 출력일 시 먼저 색 변경
     xor r8, r8
     mov r8b, byte [r13+r14]
     COLOR r8
+
+    ; 문자 출력
     mov rax, 1
     mov rdi, 1
-    mov rsi, r15
+    mov rsi, r12
     mov rdx, CHAR_LEN
     syscall
 
-    add r15, CHAR_LEN
+    add r12, CHAR_LEN
 
     jmp .next
 
 .linefeed:
+    ; 줄바꿈 출력
     mov rax, 1
     mov rdi, 1
-    mov rsi, r15
+    mov rsi, r12
     mov rdx, 1
     syscall
 
-    inc r15
+    inc r12
     jmp .loop
 
 .next:
+    ; 줄바꿈 포함 크기 계산(바이트가 아니라 인덱스 단위)
     mov r8, REAL_WIDTH
     imul r8, REAL_HEIGHT
-
-    COLOR RESET
-
+    
     inc r14
     cmp r14, r8
     jl .loop
 
 .ret:
-    pop r15
     pop r14
     pop r13
     pop r12
