@@ -1,3 +1,4 @@
+global sleep
 
 ; 지연 함수
 ; input:

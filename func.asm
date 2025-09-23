@@ -19,6 +19,7 @@ global get_real_index
 global update_center_block_coordinate
 global update_coordinate
 global update_dynamic_grid
+global rotate_piece
 IMPORT dynamic_grid
 IMPORT previous_dynamic_grid
 IMPORT color_grid
@@ -116,7 +117,7 @@ rotate_piece:
     xor rax, rax
     mov al, byte [active_piece_state+1]
     cmp al, 3
-    je .rotate
+    jl .rotate
     mov al, -1
 .rotate:
     inc al

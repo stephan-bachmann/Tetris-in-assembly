@@ -11,6 +11,7 @@ default rel
 
 
 global _start
+IMPORT clear
 IMPORT clear_set
 IMPORT cursor_visible
 IMPORT static_grid
@@ -23,6 +24,8 @@ extern update_coordinate
 extern update_center_block_coordinate
 extern update_static_grid
 extern print_small_grid, print_static_grid
+extern rotate_piece
+extern sleep
 
 
 section .text
@@ -49,6 +52,7 @@ _start:
     call print_static_grid
 
     SET_PIECE I
+    call rotate_piece
     mov rdi, 2
     mov rsi, 3
     call update_center_block_coordinate
@@ -62,19 +66,39 @@ _start:
     call update_static_grid
     call print_static_grid
 
-    SET_PIECE T
-    mov rdi, 7
+
+    xor r12, r12
+    xor r13, r13
+
+.lll:
+    xor r12, r12
+.ll:
+    xor r13, r13
+    SET_PIECE r12b
+.l:
+    PRNT clear
+    mov rdi, 10
     mov rsi, 5
     call update_center_block_coordinate
     call update_coordinate
     call update_dynamic_grid
-
-    mov rdi, dynamic_grid
-    mov rsi, GRID_WIDTH
-    mov rdx, GRID_HEIGHT
-    call print_small_grid
     call update_static_grid
     call print_static_grid
+
+    mov rdi, 1
+    mov rsi, 0
+    call sleep
+    call rotate_piece
+
+    inc r13
+    cmp r13, 4
+    jne .l
+    
+    inc r12
+    cmp r12, 7
+    jne .ll
+
+    jmp .lll
 
 _exit:
     ;PRNT cursor_visible
