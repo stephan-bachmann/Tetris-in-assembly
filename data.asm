@@ -2,6 +2,7 @@
 %include "macros.inc"
 
 EXPORT dynamic_grid
+EXPORT previous_dynamic_grid
 EXPORT static_grid
 EXPORT color_grid
 EXPORT clear_set
@@ -40,14 +41,16 @@ section .rodata
         dq C_RESET
 
 
-    C_SPACE:    db 0xe2, 0x80, 0x82
-    C_BOX:      db 0xe2, 0x96, 0x88
-    C_HB:       db 0xe2, 0x94, 0x81
-    C_VB:       db 0xe2, 0x94, 0x83
-    C_VLT:      db 0xe2, 0x94, 0x8f
-    C_VRT:      db 0xe2, 0x94, 0x93
-    C_VLB:      db 0xe2, 0x94, 0x97
-    C_VRB:      db 0xe2, 0x94, 0x9b
+    C_SPACE:     db 0xe2, 0x80, 0x82
+    C_BOX:       db 0xe2, 0x96, 0x88
+    C_HB:        db 0xe2, 0x94, 0x81
+    C_VB:        db 0xe2, 0x94, 0x83
+    C_VLT:       db 0xe2, 0x94, 0x8f
+    C_VRT:       db 0xe2, 0x94, 0x93
+    C_VLB:       db 0xe2, 0x94, 0x97
+    C_VRB:       db 0xe2, 0x94, 0x9b
+    C_BORDER:    db 0xe2, 0x96, 0x88
+    C_ACTIVATED: db 0xe2, 0x96, 0x88
 
     CHARS: 
         dq C_SPACE
@@ -58,61 +61,66 @@ section .rodata
         dq C_VRT
         dq C_VLB
         dq C_VRB
+        dq C_BORDER
+        dq C_ACTIVATED
 
 
     ; IJLOSTZ
     PIECES:
         PI:
-            PI_0:       dd 0,0, -1,0, -2,0, 1,0
-            PI_90:      dd 0,0, 0,1, 0,2, 0,-1
-            PI_180:     dd 0,0, 1,0, 2,0, -1,0
-            PI_270:     dd 0,0, 0,-1, 0,-2, 0,1
+            PI_0:       db 0,0, -1,0, -2,0, 1,0
+            PI_90:      db 0,0, 0,1, 0,2, 0,-1
+            PI_180:     db 0,0, 1,0, 2,0, -1,0
+            PI_270:     db 0,0, 0,-1, 0,-2, 0,1
         PJ:
-            PJ_0:       dd 0,0, 1,0, 1,-1, -1,0
-            PJ_90:      dd 0,0, 0,1, 1,1, 0,-1
-            PJ_180:     dd 0,0, -1,0, -1,1, 1,0
-            PJ_270:     dd 0,0, 0,-1, -1,-1, 0,1
+            PJ_0:       db 0,0, 1,0, 1,-1, -1,0
+            PJ_90:      db 0,0, 0,1, 1,1, 0,-1
+            PJ_180:     db 0,0, -1,0, -1,1, 1,0
+            PJ_270:     db 0,0, 0,-1, -1,-1, 0,1
         PL:
-            PL_0:       dd 0,0, 1,0, 1,1, -1,0
-            PL_90:      dd 0,0, 0,-1, 1,-1, 0,1
-            PL_180:     dd 0,0, -1,0, -1,-1, 1,0
-            PL_270:     dd 0,0, 0,1, -1,1, 0,-1
+            PL_0:       db 0,0, 1,0, 1,1, -1,0
+            PL_90:      db 0,0, 0,-1, 1,-1, 0,1
+            PL_180:     db 0,0, -1,0, -1,-1, 1,0
+            PL_270:     db 0,0, 0,1, -1,1, 0,-1
         PO:
-            PO_0:       dd 0,0, 0,1, 1,0, 1,1
-            PO_90:      dd 0,0, 0,1, 1,0, 1,1
-            PO_180:     dd 0,0, 0,1, 1,0, 1,1
-            PO_270:     dd 0,0, 0,1, 1,0, 1,1
+            PO_0:       db 0,0, 0,1, 1,0, 1,1
+            PO_90:      db 0,0, 0,1, 1,0, 1,1
+            PO_180:     db 0,0, 0,1, 1,0, 1,1
+            PO_270:     db 0,0, 0,1, 1,0, 1,1
         PS:
-            PS_0:       dd 0,0, 1,0, 1,-1, 0,1
-            PS_90:      dd 0,0, 0,-1, -1,-1, 1,0
-            PS_180:     dd 0,0, -1,0, -1,1, 0,-1
-            PS_270:     dd 0,0, 0,1, 1,1, -1,0
+            PS_0:       db 0,0, 1,0, 1,-1, 0,1
+            PS_90:      db 0,0, 0,-1, -1,-1, 1,0
+            PS_180:     db 0,0, -1,0, -1,1, 0,-1
+            PS_270:     db 0,0, 0,1, 1,1, -1,0
         PT:
-            PT_0:       dd 0,0, -1,0, 0,-1, 0,1
-            PT_90:      dd 0,0, 0,-1, -1,0, 1,0
-            PT_180:     dd 0,0, 1,0, 0,1, 0,-1
-            PT_270:     dd 0,0, 0,1, -1,0, 1,0
+            PT_0:       db 0,0, -1,0, 0,-1, 0,1
+            PT_90:      db 0,0, 0,-1, -1,0, 1,0
+            PT_180:     db 0,0, 1,0, 0,1, 0,-1
+            PT_270:     db 0,0, 0,1, -1,0, 1,0
         PZ:
-            PZ_0:       dd 0,0, 1,0, 1,1, 0,-1
-            PZ_90:      dd 0,0, 0,1, -1,1, 1,0
-            PZ_180:     dd 0,0, -1,0, -1,-1, 0,1
-            PZ_270:     dd 0,0, 0,-1, 1,-1, -1,0
+            PZ_0:       db 0,0, 1,0, 1,1, 0,-1
+            PZ_90:      db 0,0, 0,1, -1,1, 1,0
+            PZ_180:     db 0,0, -1,0, -1,-1, 0,1
+            PZ_270:     db 0,0, 0,-1, 1,-1, -1,0
             
 
 
 
 section .bss
     ; 실제 조각 좌표
-    active_piece: resd 8
+    active_piece: resb 8
     ; 직전 조각 좌표
-    previous_active_piece: resd 8
+    previous_active_piece: resb 8
 
-    ; 첫 번째 정수는 조각 종류
-    ; 두 번째 정수는 조각 회전 유형
-    active_piece_state: resd 2
+    ; 첫 번째 바이트는 조각 종류
+    ; 두 번째 바이트는 조각 회전 유형
+    active_piece_state: resb 2
 
     dynamic_grid: resb GRID_SIZE
     LEN dynamic_grid
+
+    previous_dynamic_grid: resb GRID_SIZE
+    LEN previous_dynamic_grid
 
     static_grid: resb REAL_SIZE
     LEN static_grid

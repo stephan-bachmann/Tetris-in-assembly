@@ -1,31 +1,30 @@
 default rel
 
 %include "defines.inc"
+%include "macros.inc"
 
 
-I equ 0
-J equ 1
-L equ 2
-O equ 3
-S equ 4
-T equ 5
-Z equ 6
-
-%assign DEGREE_SIZE 4 * 8           ; 정수 8개
+%assign DEGREE_SIZE 8               ; 8바이트
 %assign PIECE_SIZE DEGREE_SIZE * 4  ; 각도 4개
 
 
 %macro SET_PIECE 1
-    mov dword [active_piece_state], %1
-    mov dword [active_piece_state+4], 0
+    mov byte [active_piece_state], %1
+    mov byte [active_piece_state+1], 0
 %endmacro
 
 
-global update_coordinate
 global get_logic_index
+global get_real_index
 global update_center_block_coordinate
+global update_coordinate
+global update_dynamic_grid
+IMPORT dynamic_grid
+IMPORT previous_dynamic_grid
+IMPORT color_grid
 extern PIECES
 extern active_piece, active_piece_state
+extern previous_active_piece
 
 set_nonblocking:
     ; f = fntl(0, F_GETFL)
@@ -101,17 +100,27 @@ set_noncanonical:
 
 ;
 
+
+
+
+; 사용 순서
+; update_center_block_coordinate -> 중심 블록 좌표 변경
+; update_coordinate -> 중심 블록 기준으로 다른 블록 위치 계산
+; update_dynamic_grid -> 바뀐 정보를 동적 그리드에 반영
+
+
 ; 활성 조각을 시계방향으로 회전하는 함수
 ; return:
 ;   rax = 회전된 모양 번호
-rotate_piece:
-    mov eax, dword [active_piece_state+4]
-    cmp eax, 3
+rotate_piece:   
+    xor rax, rax
+    mov al, byte [active_piece_state+1]
+    cmp al, 3
     je .rotate
-    mov eax, -1
+    mov al, -1
 .rotate:
-    inc eax
-    mov dword [active_piece_state+4], eax
+    inc al
+    mov byte [active_piece_state+1], al
     ret
 ;
 
@@ -129,9 +138,9 @@ update_coordinate:
     xor r12, r12
     xor r13, r13
 
-    mov eax, dword [active_piece_state] ; 조각 번호
+    mov al, byte [active_piece_state] ; 조각 번호
     imul rax, PIECE_SIZE    ; 조각 오프셋
-    mov r12d, dword [active_piece_state+4]
+    mov r12b, byte [active_piece_state+1]
     imul r12, DEGREE_SIZE   ; 각도 오프셋
 
     add rax, r12
@@ -143,21 +152,21 @@ update_coordinate:
     mov eax, dword [rbp-8]              ; 현재 조각 모양 주소 오프셋 복구
 
     add rax, rcx
-    mov r12d, dword [PIECES+rax]        ; 상대 행 좌표 가져옴
-    mov r13d, dword [active_piece]      ; 중심 블록 행 좌표 가져옴
+    mov r12b, byte [PIECES+rax]         ; 상대 행 좌표 가져옴
+    mov r13b, byte [active_piece]       ; 중심 블록 행 좌표 가져옴
     add r13, r12                        ; 중심 블록 행 좌표에 상대 행 좌표 더함
-    mov dword [active_piece+rcx], r13d  ; 현재 블록 행 좌표 설정
-    add rcx, 4                          ; 다음 정수로 이동
+    mov byte [active_piece+rcx], r13b   ; 현재 블록 행 좌표 설정
+    add rcx, 1                          ; 다음 정수로 이동
 
-    add rax, 4
-    mov r12d, dword [PIECES+rax]        ; 상대 열 좌표 가져옴
-    mov r13d, dword [active_piece+4]    ; 중심 블록 열 좌표 가져옴
+    add rax, 1
+    mov r12b, byte [PIECES+rax]         ; 상대 열 좌표 가져옴
+    mov r13b, byte [active_piece+1]     ; 중심 블록 열 좌표 가져옴
     add r13, r12                        ; 중심 블록 열 좌표에 상대 열 좌표 더함
-    mov dword [active_piece+rcx], r13d  ; 현재 블록 열 좌표 설정
-    add rcx, 4                          ; 다음 블록으로 이동
+    mov byte [active_piece+rcx], r13b   ; 현재 블록 열 좌표 설정
+    add rcx, 1                          ; 다음 블록으로 이동
 
-    cmp rcx, 24
-    jle .loop
+    cmp rcx, 8
+    jl .loop
 
     pop r13
     pop r12
@@ -179,11 +188,151 @@ get_logic_index:
     ret
 ;
 
+; 행과 열을 받아 실제 인덱스를 반환하는 함수
+; input:
+;   rdi = 행
+;   rsi = 열
+; return:
+;   rax = 실제 인덱스
+get_real_index:
+    mov rax, rdi
+    imul rax, GRID_WIDTH
+    add rax, rsi
+    imul rax, 3
+    add rax, rdi
+    ret
+;
+
+
 ; 활성 조각의 중심 블록 좌표를 변경하는 함수
 ; input:
 ;   rdi = 중심 블록의 행
 ;   rsi = 중심 블록의 열
 update_center_block_coordinate:
-    mov dword [active_piece], edi
-    mov dword [active_piece+4], esi
+    mov byte [active_piece], dil
+    mov byte [active_piece+1], sil
     ret
+;
+
+
+; 활성 조각의 현재 상태를 동적 그리드에 반영하는 함수
+; 이전 좌표 색상을 RESET
+; 이전 좌표 동적 그리드를 0으로 변경
+update_dynamic_grid:
+    push r12
+    push r13
+
+    xor r12, r12
+    xor r13, r13
+    xor rcx, rcx
+    xor rdx, rdx
+
+    ; 이전 조각을 지우는 루프
+.prev_clear_loop:
+    mov r12b, byte [previous_active_piece+rcx]
+    inc rcx
+    mov r13b, byte [previous_active_piece+rcx]
+    inc rcx
+
+    mov rdi, r12
+    mov rsi, r13
+    call get_logic_index
+
+    ; 블록 위치에 테두리가 있으면 넘어감
+    mov dl, byte [dynamic_grid+rax]
+    cmp dl, BORDER
+    je .prev_clear_loop
+
+    ; 블록 위치에 박스(이전에 설치된 조각)가 있으면 넘어감
+    cmp dl, BOX
+    je .prev_clear_loop
+
+    ; 블록과 색을 제거
+    mov byte [dynamic_grid+rax], SPACE
+    mov byte [color_grid+rax], RESET
+
+
+    cmp rcx, 8
+    jl .prev_clear_loop
+
+
+
+    xor r12, r12
+    xor r13, r13
+    xor rcx, rcx
+    xor rdx, rdx
+
+    ; 현재 조각을 세팅하는 루프
+.current_set_loop:
+    ; 현재 블록 행
+    mov r12b, byte [active_piece+rcx]
+    mov byte [previous_active_piece+rcx], r12b  ; 이전 위치로 저장
+    inc rcx
+
+    ; 현재 블록 열
+    mov r13b, byte [active_piece+rcx]
+    mov byte [previous_active_piece+rcx], r13b  ; 이전 위치로 저장
+    inc rcx
+
+    mov rdi, r12
+    mov rsi, r13
+    call get_logic_index
+
+    ; 블록 위치에 테두리가 있으면 넘어감
+    mov dl, byte [dynamic_grid+rax]
+    cmp dl, BORDER
+    je .current_set_loop
+
+
+    ; 해당 위치를 활성화
+    mov dl, byte [active_piece_state]
+    inc dl
+    mov byte [dynamic_grid+rax], ACTIVATED
+    mov byte [color_grid+rax], dl
+
+
+
+    cmp rcx, 8
+    jl .current_set_loop
+
+
+    pop r13
+    pop r12
+    ret
+;
+
+
+; 활성 조각 위치를 보고 설치 가불가를 반환하는 함수
+; return:
+;   rax = 조각 설치 가불가
+can_activate:
+    xor rcx, rcx
+    xor rdx, rdx
+    xor r8, r8
+    xor r9, r9
+
+.loop:
+    mov dl, byte [active_piece+rcx]
+    inc rcx
+    mov r8b, byte [active_piece+rcx]
+    inc rcx
+
+    mov rdi, rdx
+    mov rsi, r8
+    call get_logic_index
+
+    mov dl, byte [dynamic_grid+rax]
+
+    cmp dl, BORDER
+    je .ret
+    cmp dl, BOX
+    je .ret
+
+    cmp rcx, 8
+    jl .loop
+
+    inc r9
+
+.ret:
+    ret
+;

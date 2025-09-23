@@ -13,3 +13,41 @@ GRID_WIDTH equ 12
 REAL_WIDTH equ 13
 %assign REAL_HEIGHT 22 + HIDDEN
 %assign REAL_SIZE REAL_WIDTH * REAL_HEIGHT * 3
+
+
+
+
+
+
+
+I equ 0
+J equ 1
+L equ 2
+O equ 3
+S equ 4
+T equ 5
+Z equ 6
+
+
+BLACK equ 0
+RED equ 1
+GREEN equ 2
+YELLOW equ 3
+BLUE equ 4
+MAGENTA equ 5
+CYAN equ 6
+WHITE equ 7
+RESET equ 8
+COLOR_LEN equ 5
+
+SPACE equ 0
+BOX equ 1
+HB equ 2
+VB equ 3
+VLT equ 4
+VRT equ 5
+VLB equ 6
+VRB equ 7
+BORDER equ 8
+ACTIVATED equ 9
+CHAR_LEN equ 3

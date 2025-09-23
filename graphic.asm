@@ -4,30 +4,6 @@ default rel
 %include "macros.inc"
 
 
-BLACK equ 0
-RED equ 1
-GREEN equ 2
-YELLOW equ 3
-BLUE equ 4
-MAGENTA equ 5
-CYAN equ 6
-WHITE equ 7
-RESET equ 8
-COLOR_LEN equ 5
-
-SPACE equ 0
-BOX equ 1
-HB equ 2
-VB equ 3
-VLT equ 4
-VRT equ 5
-VLB equ 6
-VRB equ 7
-CHAR_LEN equ 3
-
-
-ACTIVATED_BOX equ 8
-
 ; 파라미터가 rax로 전달되면 안 됨
 %macro COLOR 1
     mov rax, 1
@@ -36,6 +12,7 @@ ACTIVATED_BOX equ 8
     mov rdx, COLOR_LEN
     syscall
 %endmacro
+
 
 ; 파라미터가 rax로 전달되면 안 됨
 %macro CHAR 2
@@ -52,16 +29,17 @@ ACTIVATED_BOX equ 8
 %endmacro
 
 
-
 global set_grid
 global print_small_grid, print_static_grid
 IMPORT dynamic_grid
+IMPORT previous_dynamic_grid
 IMPORT static_grid
 IMPORT color_grid
 extern COLORS, CHARS
-extern get_logic_index
+extern get_logic_index, get_real_index
 extern active_piece, active_piece_state
 extern previous_active_piece
+global update_static_grid
 
 
 section .text
@@ -98,7 +76,7 @@ set_grid:
     mov r13, GRID_WIDTH
 
 .d_loop:
-    mov r14, BOX        ; 플래그
+    mov r14, BORDER        ; 플래그
     mov rax, r12
     xor rdx, rdx
     div r13
@@ -118,7 +96,7 @@ set_grid:
     je .d_next
 
 .d_hidden:
-    dec r14
+    mov r14, SPACE
     jmp .d_next
 
 .d_open:
@@ -128,7 +106,7 @@ set_grid:
     cmp rdx, GRID_INDEX_WIDTH
     je .d_next
 
-    dec r14
+    mov r14, SPACE
 
 .d_next:
     ; 플래그로 채우기
@@ -140,6 +118,11 @@ set_grid:
     jne .d_loop
 
 
+
+    mov rdi, previous_dynamic_grid
+    mov rsi, dynamic_grid
+    mov rcx, dynamic_grid_len
+    rep movsb
 
 
 
@@ -314,3 +297,55 @@ print_static_grid:
     pop r12
     leave
     ret
+;
+
+
+; 동적 그리드를 정적 그리드에 반영하는 함수
+update_static_grid:
+    push r12
+    push r13
+    xor rcx, rcx
+    xor rdx, rdx
+    xor r12, r12    ; 행
+    xor r13, r13    ; 열
+    ; 루프를 돌면서 이전과 다른 부분만 새로 반영
+.loop:
+    mov rdi, r12
+    mov rsi, r13
+    call get_logic_index
+
+    mov cl, byte [dynamic_grid+rax]
+    mov dl, byte [previous_dynamic_grid+rax]
+
+    cmp cl, dl
+    je .next
+
+    mov rdi, r12
+    mov rsi, r13
+    call get_real_index
+
+    mov rsi, static_grid
+    add rsi, rax
+    CHAR rsi, rcx
+
+.next:
+    inc r13
+    cmp r13, GRID_WIDTH
+    jne .loop
+
+    xor r13, r13
+    inc r12
+    cmp r12, GRID_HEIGHT
+    jne .loop
+
+.copy:
+    mov rdi, previous_dynamic_grid
+    mov rsi, dynamic_grid
+    mov rcx, dynamic_grid_len
+    rep movsb
+
+.ret:
+    pop r13
+    pop r12
+    ret
+;
