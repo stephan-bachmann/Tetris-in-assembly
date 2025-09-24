@@ -5,12 +5,17 @@ EXPORT dynamic_grid
 EXPORT previous_dynamic_grid
 EXPORT static_grid
 EXPORT color_grid
+EXPORT next_piece_grid
+EXPORT next_piece_color_grid
 EXPORT clear
 EXPORT clear_set
 EXPORT cursor_visible
 global COLORS, CHARS, PIECES
 global active_piece, active_piece_state
 global previous_active_piece
+global orig_termios, raw_termios, orig_flags
+global next_piece_line
+global next_piece_switch
 
 section .rodata
     clear: db 0x1b, "[2J"
@@ -131,8 +136,21 @@ section .bss
     previous_dynamic_grid: resb GRID_SIZE
     LEN previous_dynamic_grid
 
-    static_grid: resb REAL_SIZE
+    static_grid: resb REAL_SIZE_3
     LEN static_grid
 
     color_grid: resb GRID_SIZE
     LEN color_grid
+
+    next_piece_grid: resb NEXT_SIZE_3
+    LEN next_piece_grid
+
+    next_piece_color_grid: resb NEXT_SIZE_1
+    LEN next_piece_color_grid
+
+    orig_termios: resb 64     ; 원래 termios 저장용
+    orig_flags:   resq 1      ; 원래 fcntl flags 저장용
+    raw_termios:  resb 64     ; 수정본 임시 버퍼
+
+    next_piece_line: resb 1
+    next_piece_switch: resb 1

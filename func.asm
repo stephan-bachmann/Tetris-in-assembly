@@ -20,86 +20,112 @@ global update_center_block_coordinate
 global update_coordinate
 global update_dynamic_grid
 global rotate_piece
+global save_tty, restore_tty
+global linefeed
 IMPORT dynamic_grid
 IMPORT previous_dynamic_grid
 IMPORT color_grid
 extern PIECES
 extern active_piece, active_piece_state
 extern previous_active_piece
+extern orig_termios, orig_flags, raw_termios
 
-set_nonblocking:
-    ; f = fntl(0, F_GETFL)
-    ; stdin의 플래그 정보를 가져옴
-    mov rax, 72     ; syscall = fntl
-    xor rdi, rdi    ; fd = 0 (stdin)
-    mov rsi, 3      ; F_GETFL
-    xor rdx, rdx
+section .text
+
+save_tty:
+    ; ioctl(fd=0, TCGETS=0x5401, &orig_termios)
+    mov  rax, 16
+    xor  rdi, rdi
+    mov  rsi, 0x5401
+    mov  rdx, orig_termios
     syscall
 
-    test rax, rax   ; 0 미만이면 오류
-    js .error
+    ; fcntl(fd=0, F_GETFL=3)
+    mov  rax, 72
+    xor  rdi, rdi
+    mov  rsi, 3
+    xor  rdx, rdx
+    syscall
+    mov  [orig_flags], rax
 
-    or rax, 2048    ; O_NONBLOCK
+    ; raw_termios = orig_termios (64바이트 복사)
+    mov  rsi, orig_termios
+    mov  rdi, raw_termios
+    mov  rcx, 64
+    rep  movsb
 
-    ; fntl(0, F_SETFL, f | O_NONBLOCK)
-    ; stdin의 플래그 다시 세팅
-    mov rdx, rax    ; f | O_NONBLOCK
-    mov rax, 72     ; syscall = fntl
-    mov rsi, 4      ; F_SETFL
+    ; c_lflag &= ~(ICANON|ECHO)
+    mov  rbx, [raw_termios+12]
+    and  rbx, ~0x0A
+    mov  [raw_termios+12], rbx
+
+    ; VMIN=0, VTIME=0
+    mov  byte [raw_termios+19], 0
+    mov  byte [raw_termios+20], 0
+
+    ; ioctl(fd=0, TCSETS=0x5402, &raw_termios)
+    mov  rax, 16
+    xor  rdi, rdi
+    mov  rsi, 0x5402
+    mov  rdx, raw_termios
     syscall
 
-    test rax, rax   ; 0 미만이면 오류
-    js .error
-
-    xor rax, rax    ; 성공
+    ; fcntl(fd=0, F_SETFL=4, flags|O_NONBLOCK)
+    mov  rax, [orig_flags]
+    or   rax, 2048
+    mov  rdx, rax
+    mov  rax, 72
+    xor  rdi, rdi
+    mov  rsi, 4
+    syscall
     ret
+    
+restore_tty:
+    ; ioctl(fd=0, TCSETS=0x5402, &orig_termios)
+    mov  rax, 16
+    xor  rdi, rdi
+    mov  rsi, 0x5402
+    mov  rdx, orig_termios
+    syscall
 
-
-.error:
+    ; fcntl(fd=0, F_SETFL=4, orig_flags)
+    mov  rax, 72
+    xor  rdi, rdi
+    mov  rsi, 4
+    mov  rdx, [orig_flags]
+    syscall
     ret
+;
 
 
-
-
-set_noncanonical:
+; 줄바꿈을 출력하는 함수
+; input:
+;   rdi = 출력할 개수
+linefeed:
     push rbp
     mov rbp, rsp
-    sub rsp, 64 ; termios 구조체 버퍼
+    sub rsp, 8
+    push r12
 
-    lea r8, [rbp-64]
+    mov byte [rbp-8], 0xa
 
-    ; tcgetattr(0, &termios) → ioctl(fd=0, TCGETS, &termios_buf)
-    mov rax, 16                 ; syscall = ioctl
-    xor rdi, rdi                ; fd = 0 (stdin)
-    mov rsi, 0x5401             ; TCGETS
-    mov rdx, r8                 ; &termios_buf
+    mov r12, rdi
+.loop:
+    mov rax, 1
+    mov rdi, 1
+    lea rsi, [rbp-8]
+    mov rdx, 1
     syscall
 
-    ; termios.c_lflag &= ~(ICANON | ECHO)
-    ; canonical과 echo를 끔
-    mov rbx, [r8 + 12]
-    and rbx, ~0x0A              ; ~(0x2 | 0x8)
-    mov [r8 + 12], rbx
+    dec r12
+    cmp r12, 0
+    jne .loop
 
-    ; termios.c_cc[VMIN]  = 0
-    mov byte [r8 + 19], 0
-
-    ; termios.c_cc[VTIME] = 0
-    mov byte [r8 + 20], 0
-
-
-    ; tcsetattr(0, TCSANOW, &termios) → ioctl(fd=0, TCSETS, &termios_buf)
-    mov rax, 16                 ; syscall = ioctl
-    xor rdi, rdi                ; fd = 0 (stdin)
-    mov rsi, 0x5402             ; TCSETS
-    mov rdx, r8                 ; &termios_buf
-    syscall
-
+.ret:
+    pop r12
+    add rsp, 8
     leave
     ret
-
-
-;
 
 
 

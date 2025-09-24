@@ -3,6 +3,11 @@ default rel
 %include "defines.inc"
 %include "macros.inc"
 
+NONE equ 0
+TOP equ 1
+BOTTOM equ 2
+LEFT equ 1
+RIGHT equ 2
 
 ; 파라미터가 rax로 전달되면 안 됨
 %macro COLOR 1
@@ -31,15 +36,19 @@ default rel
 
 global set_grid
 global print_small_grid, print_static_grid
+global update_static_grid
 IMPORT dynamic_grid
 IMPORT previous_dynamic_grid
 IMPORT static_grid
 IMPORT color_grid
+IMPORT next_piece_grid
+IMPORT next_piece_color_grid
 extern COLORS, CHARS
 extern get_logic_index, get_real_index
 extern active_piece, active_piece_state
 extern previous_active_piece
-global update_static_grid
+extern next_piece_line
+extern next_piece_switch
 
 
 section .text
@@ -70,6 +79,8 @@ set_grid:
     mov al, RESET
     mov rcx, color_grid_len
     rep stosb
+
+    call reset_next_piece_grid
 
 .dynamic:
     xor r12, r12        ; 논리 인덱스
@@ -241,12 +252,14 @@ print_static_grid:
     push r12
     push r13
     push r14
+    push r15
 
     mov r12, static_grid
     mov r13, color_grid
 
     xor r8, r8
     xor r14, r14    ; 인덱스
+    xor r15, r15    ; 행
     
 .loop:
     mov al, byte [r12]
@@ -271,6 +284,15 @@ print_static_grid:
     jmp .next
 
 .linefeed:
+    ; 히든 다음부터 다음 조각 출력
+    inc r15
+    cmp r15, HIDDEN
+    jle .skip_next_piece
+
+    call print_next_piece_grid_line
+
+.skip_next_piece:
+
     ; 줄바꿈 출력
     mov rax, 1
     mov rdi, 1
@@ -282,20 +304,203 @@ print_static_grid:
     jmp .loop
 
 .next:
-    ; 줄바꿈 포함 크기 계산(바이트가 아니라 인덱스 단위)
-    mov r8, REAL_WIDTH
-    imul r8, REAL_HEIGHT
-    
     inc r14
-    cmp r14, r8
+    cmp r14, REAL_SIZE_1
     jl .loop
 
 .ret:
     COLOR RESET
+    pop r15
     pop r14
     pop r13
     pop r12
     leave
+    ret
+;
+
+
+; 다음 조각 미리보기 그리드 초기화 함수
+reset_next_piece_grid:
+    push rbp
+    mov rbp, rsp
+    sub rsp, 8
+
+    push r12
+    push r13
+    push r14
+    push r15
+
+    mov qword [rbp-8], next_piece_grid
+    mov byte [next_piece_switch], 1
+
+    mov rdi, next_piece_color_grid
+    mov al, RESET
+    mov rcx, next_piece_color_grid_len
+    rep stosb
+
+    xor rax, rax    ; 행
+    xor rdx, rdx    ; 열
+    xor r12, r12    ; 인덱스
+    mov r13, NEXT_WIDTH
+.loop:
+    mov rax, r12
+    xor rdx, rdx
+    div r13
+    ; 좌표 구하기
+
+    xor r14, r14    ; 상하 플래그(NONE/TOP/BOTTOM)
+    xor r15, r15    ; 좌우 플래그(NONE/LEFT/RIGHT)
+    
+    cmp rax, 0
+    je .top
+    cmp rax, NEXT_INDEX_HEIGHT
+    je .bottom
+
+    jmp .left_or_right
+
+.top:
+    mov r14, TOP
+    jmp .left_or_right
+.bottom:
+    mov r14, BOTTOM
+
+.left_or_right:
+    cmp rdx, 0
+    je .left
+    cmp rdx, NEXT_INDEX_WIDTH
+    je .right
+
+    jmp .set_character
+
+.left:
+    mov r15, LEFT
+    jmp .set_character
+.right:
+    mov r15, RIGHT
+
+.set_character:
+    mov rdi, qword [rbp-8]
+    
+    mov rax, r14
+    or rax, r15
+    jz .space
+
+    cmp r15, NONE
+    jne .vertical
+
+    jmp .horizon
+
+.space:
+    mov r11, SPACE
+    jmp .next
+.vertical:
+    cmp r14, NONE
+    jne .vertex
+
+    mov r11, VB
+    jmp .next
+.horizon:
+    mov r11, HB
+    jmp .next
+.vertex:
+    cmp r14, TOP
+    je .t
+    jmp .b
+.t:
+    cmp r15, LEFT
+    je .lt
+    jmp .rt
+.lt:
+    mov r11, VLT
+    jmp .next
+.rt:
+    mov r11, VRT
+    jmp .next
+
+.b:
+    cmp r15, LEFT
+    je .lb
+    jmp .rb
+.lb:
+    mov r11, VLB
+    jmp .next
+.rb:
+    mov r11, VRB
+
+.next:
+    CHAR rdi, r11
+
+    mov qword [rbp-8], rdi
+
+    inc r12
+    cmp r12, NEXT_SIZE_1
+    jne .loop
+
+
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+
+    add rsp, 8
+    leave
+    ret
+;
+
+
+; 다음 조각 미리보기 한 줄 출력 함수
+print_next_piece_grid_line:
+    push r12
+    push r13
+    push r14
+
+    xor r12, r12    ; 행
+    xor r13, r13    ; 열
+
+    mov r12b, byte [next_piece_line]    ; 출력할 줄
+
+    ; 스위치가 꺼져 있으면 종료
+    mov al, byte [next_piece_switch]
+    test al, al
+    jz .ret
+.loop:
+    mov rax, r12
+    imul rax, NEXT_WIDTH
+    add rax, r13
+
+    mov r14, rax
+    imul r14, 3
+
+    xor rdx, rdx
+    mov dl, byte [next_piece_color_grid+rax]
+
+    COLOR rdx
+
+
+    mov rdi, 1
+    lea rsi, [next_piece_grid+r14]
+    mov rdx, 3
+    mov rax, 1
+    syscall
+
+    COLOR RESET
+
+    inc r13
+    cmp r13, NEXT_WIDTH
+    jne .loop
+
+    inc r12
+    cmp r12, NEXT_HEIGHT
+    jne .ret
+
+    xor r12, r12
+    mov byte [next_piece_switch], 0
+
+.ret:
+    mov byte [next_piece_line], r12b
+    pop r14
+    pop r13
+    pop r12
     ret
 ;
 
