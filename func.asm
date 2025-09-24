@@ -21,7 +21,6 @@ global update_coordinate
 global update_dynamic_grid
 global rotate_piece
 global save_tty, restore_tty
-global linefeed
 IMPORT dynamic_grid
 IMPORT previous_dynamic_grid
 IMPORT color_grid
@@ -96,36 +95,6 @@ restore_tty:
     syscall
     ret
 ;
-
-
-; 줄바꿈을 출력하는 함수
-; input:
-;   rdi = 출력할 개수
-linefeed:
-    push rbp
-    mov rbp, rsp
-    sub rsp, 8
-    push r12
-
-    mov byte [rbp-8], 0xa
-
-    mov r12, rdi
-.loop:
-    mov rax, 1
-    mov rdi, 1
-    lea rsi, [rbp-8]
-    mov rdx, 1
-    syscall
-
-    dec r12
-    cmp r12, 0
-    jne .loop
-
-.ret:
-    pop r12
-    add rsp, 8
-    leave
-    ret
 
 
 

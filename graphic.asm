@@ -260,6 +260,8 @@ print_static_grid:
     xor r8, r8
     xor r14, r14    ; 인덱스
     xor r15, r15    ; 행
+
+    mov byte [next_piece_switch], 1
     
 .loop:
     mov al, byte [r12]
@@ -385,23 +387,53 @@ reset_next_piece_grid:
     or rax, r15
     jz .space
 
-    cmp r15, NONE
-    jne .vertical
+    cmp r14, NONE
+    jne .horizon
 
-    jmp .horizon
+    jmp .vertical
 
 .space:
     mov r11, SPACE
     jmp .next
 .vertical:
-    cmp r14, NONE
-    jne .vertex
-
     mov r11, VB
     jmp .next
+
+
 .horizon:
+    cmp r15, NONE
+    jne .vertex
+
+    ; 맨 위면 대신에 글자 출력
+    cmp r14, TOP
+    jne .not_top
+    
+    mov byte [rdi], "N"
+    mov byte [rdi+1], 0
+    mov byte [rdi+2], 0
+    add rdi, 3
+    mov byte [rdi], "E"
+    mov byte [rdi+1], 0
+    mov byte [rdi+2], 0
+    add rdi, 3
+    mov byte [rdi], "X"
+    mov byte [rdi+1], 0
+    mov byte [rdi+2], 0
+    add rdi, 3
+    mov byte [rdi], "T"
+    mov byte [rdi+1], 0
+    mov byte [rdi+2], 0
+    add rdi, 3
+
+    ; 이후 인덱스 3개는 스킵
+    add r12, 3
+    jmp .string_insert
+
+.not_top:
     mov r11, HB
     jmp .next
+
+
 .vertex:
     cmp r14, TOP
     je .t
@@ -430,6 +462,7 @@ reset_next_piece_grid:
 .next:
     CHAR rdi, r11
 
+.string_insert:
     mov qword [rbp-8], rdi
 
     inc r12

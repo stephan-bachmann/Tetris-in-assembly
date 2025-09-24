@@ -46,28 +46,6 @@ _start:
     mov byte [color_grid+283], RESET
     mov byte [color_grid+284], BLACK
 
-    mov rdi, color_grid
-    mov rsi, GRID_WIDTH
-    mov rdx, GRID_HEIGHT
-    call print_small_grid
-    call update_static_grid
-    call print_static_grid
-
-    SET_PIECE I
-    call rotate_piece
-    mov rdi, 2
-    mov rsi, 3
-    call update_center_block_coordinate
-    call update_coordinate
-    call update_dynamic_grid
-
-    mov rdi, dynamic_grid
-    mov rsi, GRID_WIDTH
-    mov rdx, GRID_HEIGHT
-    call print_small_grid
-    call update_static_grid
-    call print_static_grid
-
 
     xor r12, r12
     xor r13, r13
@@ -90,7 +68,7 @@ _start:
     call update_static_grid
     call print_static_grid
 
-    mov rdi, 0
+    mov rdi, 1
     mov rsi, 0
     call sleep
     call rotate_piece
