@@ -28,23 +28,28 @@ extern rotate_piece
 extern sleep
 extern save_tty, restore_tty
 extern linefeed
+extern change_subgrid
 
 section .text
 
 _start:
     ;call save_tty
-    PRNT clear_set
 
     call set_grid
-    mov byte [color_grid+276], RED
-    mov byte [color_grid+277], GREEN
-    mov byte [color_grid+278], YELLOW
-    mov byte [color_grid+279], BLUE
-    mov byte [color_grid+280], MAGENTA
-    mov byte [color_grid+281], CYAN
-    mov byte [color_grid+282], WHITE
-    mov byte [color_grid+283], RESET
-    mov byte [color_grid+284], BLACK
+
+    mov rax, GRID_HEIGHT
+    dec rax
+    imul rax, GRID_WIDTH
+    mov rdx, RED
+.color_set:
+    mov byte [color_grid+rax], dl
+    inc rdx
+    inc rax
+    cmp rdx, RESET
+    jle .color_set
+    mov byte [color_grid+rax], BLACK
+    
+
 
 
     xor r12, r12
@@ -55,11 +60,17 @@ _start:
 .ll:
     xor r13, r13
     SET_PIECE r12b
+    xor rdi, rdi
+    mov rsi, r12
+    call change_subgrid
+    mov rdi, 1
+    mov rsi, r12
+    inc rsi
+    call change_subgrid
+    
 .l:
     PRNT clear
-    mov rdi, 5
-    call linefeed
-
+    PRNT clear_set
     mov rdi, 10
     mov rsi, 5
     call update_center_block_coordinate
@@ -79,10 +90,9 @@ _start:
     
     inc r12
     cmp r12, 7
-    ;;;;;;;;;;;
-    jmp _exit
-    ;;;;;;;;;;;
     jne .ll
+
+    jmp .lll
 
 
 _exit:

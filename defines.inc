@@ -1,11 +1,11 @@
-HIDDEN equ 2
+HIDDEN equ 5
 
-NEXT_WIDTH equ 6
-NEXT_HEIGHT equ 6
-%assign NEXT_INDEX_WIDTH NEXT_WIDTH - 1
-%assign NEXT_INDEX_HEIGHT NEXT_HEIGHT - 1
-%assign NEXT_SIZE_1 NEXT_WIDTH * NEXT_HEIGHT
-%assign NEXT_SIZE_3 NEXT_SIZE_1 * 3
+SUB_WIDTH equ 6
+SUB_HEIGHT equ 6
+%assign SUB_INDEX_WIDTH SUB_WIDTH - 1
+%assign SUB_INDEX_HEIGHT SUB_HEIGHT - 1
+%assign SUB_SIZE_1 SUB_WIDTH * SUB_HEIGHT
+%assign SUB_SIZE_3 SUB_SIZE_1 * 3
 
 MAP_WIDTH equ 10
 %assign MAP_HEIGHT 20 + HIDDEN
@@ -23,6 +23,9 @@ REAL_WIDTH equ 13
 %assign REAL_SIZE_3 REAL_SIZE_1 * 3
 
 
+
+%assign DEGREE_SIZE 8               ; 8바이트
+%assign PIECE_SIZE DEGREE_SIZE * 4  ; 각도 4개
 
 
 
@@ -59,3 +62,22 @@ VRB equ 7
 BORDER equ 8
 ACTIVATED equ 9
 CHAR_LEN equ 3
+
+struc Subgrid
+    .width:         resb 1
+    .index_width:   resb 1
+    .height:        resb 1
+    .index_height:  resb 1
+    
+    .size:          resd 1
+    .index_size:    resd 1
+
+    .text:          resb 4
+
+    .piece:         resb 1
+    .line:          resb 1
+    .switch:        resb 1
+
+    .grid:          resq 1
+    .color_grid:    resq 1
+endstruc

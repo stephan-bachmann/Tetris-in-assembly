@@ -4,10 +4,6 @@ default rel
 %include "macros.inc"
 
 
-%assign DEGREE_SIZE 8               ; 8바이트
-%assign PIECE_SIZE DEGREE_SIZE * 4  ; 각도 4개
-
-
 %macro SET_PIECE 1
     mov byte [active_piece_state], %1
     mov byte [active_piece_state+1], 0

@@ -5,17 +5,13 @@ EXPORT dynamic_grid
 EXPORT previous_dynamic_grid
 EXPORT static_grid
 EXPORT color_grid
-EXPORT next_piece_grid
-EXPORT next_piece_color_grid
 EXPORT clear
 EXPORT clear_set
 EXPORT cursor_visible
-global COLORS, CHARS, PIECES
+global COLORS, CHARS, PIECES, SUBGRIDS
 global active_piece, active_piece_state
 global previous_active_piece
 global orig_termios, raw_termios, orig_flags
-global next_piece_line
-global next_piece_switch
 
 section .rodata
     clear: db 0x1b, "[2J"
@@ -119,6 +115,53 @@ section .rodata
             PZ_270:  db 0,0, -1,0, 0,-1, 1,-1
 
 
+    SUBGRIDS:
+        dq next_piece
+        dq keep_piece
+
+
+section .data
+    next_piece:
+        istruc Subgrid
+            at Subgrid.width,           db SUB_WIDTH
+            at Subgrid.index_width,     db SUB_INDEX_WIDTH
+            at Subgrid.height,          db SUB_HEIGHT
+            at Subgrid.index_height,    db SUB_INDEX_HEIGHT
+
+            at Subgrid.size,            dd SUB_SIZE_3
+            at Subgrid.index_size,      dd SUB_SIZE_1
+
+            at Subgrid.text,            db "NEXT"
+            
+            at Subgrid.piece,           db -1
+            at Subgrid.line,            db 0
+            at Subgrid.switch,          db 1
+
+            at Subgrid.grid,            dq next_piece_grid
+            at Subgrid.color_grid,      dq next_piece_color_grid
+        iend
+
+    keep_piece:
+        istruc Subgrid
+            at Subgrid.width,           db SUB_WIDTH
+            at Subgrid.index_width,     db SUB_INDEX_WIDTH
+            at Subgrid.height,          db SUB_HEIGHT
+            at Subgrid.index_height,    db SUB_INDEX_HEIGHT
+            
+            at Subgrid.size,            dd SUB_SIZE_3
+            at Subgrid.index_size,      dd SUB_SIZE_1
+
+            at Subgrid.text,            db "KEEP"
+
+            at Subgrid.piece,           db -1
+            at Subgrid.line,            db 0
+            at Subgrid.switch,          db 1
+            
+            at Subgrid.grid,            dq keep_piece_grid
+            at Subgrid.color_grid,      dq keep_piece_color_grid
+        iend    
+
+
 
 section .bss
     ; 실제 조각 좌표
@@ -142,15 +185,16 @@ section .bss
     color_grid: resb GRID_SIZE
     LEN color_grid
 
-    next_piece_grid: resb NEXT_SIZE_3
+    next_piece_grid: resb SUB_SIZE_3
     LEN next_piece_grid
-
-    next_piece_color_grid: resb NEXT_SIZE_1
+    next_piece_color_grid: resb SUB_SIZE_1
     LEN next_piece_color_grid
+
+    keep_piece_grid: resb SUB_SIZE_3
+    LEN keep_piece_grid
+    keep_piece_color_grid: resb SUB_SIZE_1
+    LEN keep_piece_color_grid
 
     orig_termios: resb 64     ; 원래 termios 저장용
     orig_flags:   resq 1      ; 원래 fcntl flags 저장용
     raw_termios:  resb 64     ; 수정본 임시 버퍼
-
-    next_piece_line: resb 1
-    next_piece_switch: resb 1
