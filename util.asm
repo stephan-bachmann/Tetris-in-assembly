@@ -1,5 +1,6 @@
 global sleep
 global linefeed
+global itoa
 
 ; 지연 함수
 ; input:
@@ -62,3 +63,61 @@ linefeed:
     leave
     ret
 
+
+
+; input:
+;   rdi = 정수
+;   rsi = 변환된 문자열을 쓸 버퍼
+; return: 
+;   rax = 변환된 문자열의 길이
+itoa:
+.setup:
+    push rbx    ; div
+
+    mov rbx, 10
+    xor rcx, rcx
+    xor rdx, rdx
+
+    mov rax, rdi
+    mov rdi, rsi
+
+
+.push_last_number:
+    ; 10으로 나누기
+    div rbx
+
+    ; 마지막 자리 수 추출
+    add rdx, 0x30
+    push rdx
+    xor rdx, rdx
+
+    ; 길이 증가
+    inc rcx
+
+    ; 몫이 0이 아니면 루프
+    test rax, rax
+    jnz .push_last_number
+
+    ; 루프에 사용하기 전, 문자열 길이 임시 저장
+    mov rdx, rcx
+
+
+.pop_number_string:
+    ; 변환된 문자열의 맨 앞부터 가져오기
+    pop rax
+
+    ; 문자를 버퍼에 쓰기
+    mov byte [rdi], al
+    inc rdi
+    
+    ; 문자열 길이만큼 반복
+    loop .pop_number_string
+
+.ret:
+    ; 길이 반환
+    mov rax, rdx
+
+    pop rbx
+    ret
+
+;

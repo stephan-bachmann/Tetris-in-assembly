@@ -8,10 +8,12 @@ EXPORT color_grid
 EXPORT clear
 EXPORT clear_set
 EXPORT cursor_visible
+EXPORT score_text
 global COLORS, CHARS, PIECES, SUBGRIDS
 global active_piece, active_piece_state
 global previous_active_piece
 global orig_termios, raw_termios, orig_flags
+global score
 
 section .rodata
     clear: db 0x1b, "[2J"
@@ -22,6 +24,9 @@ section .rodata
 
     cursor_visible: db 0x1b, "[?25h"
     LEN cursor_visible
+
+    score_text: db "SCORE "
+    LEN score_text
 
 
     C_BLACK:      db 0x1b, "[90m"
@@ -121,6 +126,8 @@ section .rodata
 
 
 section .data
+    score: dd 0
+
     next_piece:
         istruc Subgrid
             at Subgrid.width,           db SUB_WIDTH
@@ -186,9 +193,16 @@ section .bss
     LEN color_grid
 
     next_piece_grid: resb SUB_SIZE_3
+    next_piece_grid: resb SUB_SIZE_3
     LEN next_piece_grid
     next_piece_color_grid: resb SUB_SIZE_1
+    next_piece_color_grid: resb SUB_SIZE_1
     LEN next_piece_color_grid
+
+    keep_piece_grid: resb SUB_SIZE_3
+    LEN keep_piece_grid
+    keep_piece_color_grid: resb SUB_SIZE_1
+    LEN keep_piece_color_grid
 
     keep_piece_grid: resb SUB_SIZE_3
     LEN keep_piece_grid

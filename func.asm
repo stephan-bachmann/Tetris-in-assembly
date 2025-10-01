@@ -16,7 +16,11 @@ global update_center_block_coordinate
 global update_coordinate
 global update_dynamic_grid
 global rotate_piece
+global add_score
+global set_score
 global save_tty, restore_tty
+global check_collision
+global fixing_piece
 IMPORT dynamic_grid
 IMPORT previous_dynamic_grid
 IMPORT color_grid
@@ -24,6 +28,7 @@ extern PIECES
 extern active_piece, active_piece_state
 extern previous_active_piece
 extern orig_termios, orig_flags, raw_termios
+extern score
 
 section .text
 
@@ -294,37 +299,140 @@ update_dynamic_grid:
 ;
 
 
-; 활성 조각 위치를 보고 설치 가불가를 반환하는 함수
-; return:
-;   rax = 조각 설치 가불가
-can_activate:
-    xor rcx, rcx
-    xor rdx, rdx
-    xor r8, r8
-    xor r9, r9
-
-.loop:
-    mov dl, byte [active_piece+rcx]
-    inc rcx
-    mov r8b, byte [active_piece+rcx]
-    inc rcx
-
-    mov rdi, rdx
-    mov rsi, r8
-    call get_logic_index
-
-    mov dl, byte [dynamic_grid+rax]
-
-    cmp dl, BORDER
-    je .ret
-    cmp dl, BOX
-    je .ret
-
-    cmp rcx, 8
-    jl .loop
-
-    inc r9
-
-.ret:
+; 점수를 주어진 수로 설정하는 함수
+; input:
+;   rdi = 점수
+set_score:
+    mov dword [score], edi
     ret
 ;
+
+; 점수에 주어진 수를 더하는 함수
+; input:
+;   rdi = 점수
+add_score:
+    xor rax, rax
+    mov eax, dword [score]
+    add rax, rdi
+    mov dword [score], eax
+    ret
+;
+
+
+; 현재 활성 조각이 다른 조각이나 테두리에 충돌했는지 여부를 반환하는 함수
+check_collision:
+    push rbp
+    mov rbp, rsp
+    sub rsp, 16
+    push r12
+    push r13
+    push r14
+    push r15
+
+    xor r12, r12
+    xor r13, r13
+    mov r14, 1      ; 플래그
+    xor r15, r15    ; 카운터
+
+    lea rax, qword [rbp-16]
+.prev_set:
+    mov dl, byte [previous_active_piece+r15*2]
+    mov byte [rax+r15*2], dl
+    mov dl, byte [previous_active_piece+r15*2+1]
+    mov byte [rax+r15*2+1], dl
+
+    inc r15
+    cmp r15, 4
+    jl .prev_set
+
+    xor r15, r15
+
+.loop:
+    lea rax, qword [rbp-16]
+    mov r12b, byte [active_piece+r15*2]
+    mov r13b, byte [active_piece+r15*2+1]
+
+    cmp r12, 0
+    jle .ret
+    cmp r12, GRID_INDEX_HEIGHT
+    jge .ret
+
+    cmp r13, 0
+    jle .ret
+    cmp r13, GRID_INDEX_WIDTH
+    jge .ret
+
+    cmp r12b, byte [rax+r15*2]
+    jne .not_equal
+
+.row_equal:
+    cmp r13b, byte [rax+r15*2+1]
+    je .next
+
+.not_equal:
+
+
+    mov rdi, r12
+    mov rsi, r13
+    call get_logic_index
+
+
+    mov dl, byte [dynamic_grid+rax]
+    cmp dl, SPACE
+    jne .ret
+
+.next:
+    inc r15
+    cmp r15, 4
+    jl .loop
+
+    xor r14, r14
+
+.ret:
+    mov rax, r14
+
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    add rsp, 16
+    leave
+    ret
+;
+
+
+; 현재 활성 조각 위치에 조각을 고정하고 초기화하는 함수
+fixing_piece:
+    push r12
+    push r13
+    push r14
+    push r15
+
+    xor r12, r12
+    xor r13, r13
+    xor r14, r14
+    xor r15, r15
+.loop:
+    mov r12b, byte [active_piece+r15*2]
+    mov r13b, byte [active_piece+r15*2+1]
+
+    mov rdi, r12
+    mov rsi, r13
+    call get_logic_index
+
+    mov byte [dynamic_grid+rax], BOX
+
+    mov byte [active_piece+r15*2], 0
+    mov byte [active_piece+r15*2+1], 5
+
+    inc r15
+    cmp r15, 4
+    jl .loop
+
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    ret
+;
+
