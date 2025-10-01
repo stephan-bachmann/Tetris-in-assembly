@@ -38,7 +38,6 @@ global set_grid
 global print_small_grid, print_static_grid
 global update_static_grid
 global change_subgrid
-global change_subgrid
 IMPORT dynamic_grid
 IMPORT previous_dynamic_grid
 IMPORT static_grid
@@ -48,8 +47,8 @@ extern COLORS, CHARS, PIECES, SUBGRIDS
 extern get_logic_index, get_real_index
 extern active_piece, active_piece_state
 extern previous_active_piece
-extern score
 extern itoa
+extern score
 
 
 section .text
@@ -81,10 +80,6 @@ set_grid:
     mov rcx, color_grid_len
     rep stosb
 
-    xor rdi, rdi
-    call reset_subgrid
-    mov rdi, 1
-    call reset_subgrid
     xor rdi, rdi
     call reset_subgrid
     mov rdi, 1
@@ -276,13 +271,6 @@ print_static_grid:
     mov byte [r10+Subgrid.switch], 1
 
     xor rax, rax
-    ; 서브 그리드 스위치 켜기
-    mov r10, qword [SUBGRIDS]
-    mov byte [r10+Subgrid.switch], 1
-    mov r10, qword [SUBGRIDS+8]
-    mov byte [r10+Subgrid.switch], 1
-
-    xor rax, rax
 .loop:
     mov al, byte [r12]
     cmp al, 0xa
@@ -306,26 +294,16 @@ print_static_grid:
     jmp .next
 
 .linefeed:
-    inc r15
-
-    ; 히든이면 점수 출력
-    cmp r15, HIDDEN
-    jne .skip_score
-
-    call print_score
-
-.skip_score:    
     ; 히든 다음부터 다음 조각 출력
+    inc r15
     cmp r15, HIDDEN
     jle .skip_next_piece
 
     xor rdi, rdi
     call print_subgrid_line
-    xor rdi, rdi
-    call print_subgrid_line
 
 .skip_next_piece:
-    ; 히든에 서브 그리드 높이를 더한 것의 다음부터 보관 조각 출력
+
     mov r8, HIDDEN
     add r8, SUB_HEIGHT
     inc r8
@@ -418,65 +396,7 @@ update_static_grid:
 
 
 
-
-; 동적 그리드를 정적 그리드에 반영하는 함수
-update_static_grid:
-    push r12
-    push r13
-    xor rcx, rcx
-    xor rdx, rdx
-    xor r12, r12    ; 행
-    xor r13, r13    ; 열
-    ; 루프를 돌면서 이전과 다른 부분만 새로 반영
-.loop:
-    mov rdi, r12
-    mov rsi, r13
-    call get_logic_index
-
-    mov cl, byte [dynamic_grid+rax]
-    mov dl, byte [previous_dynamic_grid+rax]
-
-    cmp cl, dl
-    je .next
-
-    mov rdi, r12
-    mov rsi, r13
-    call get_real_index
-
-    mov rsi, static_grid
-    add rsi, rax
-    CHAR rsi, rcx
-
-.next:
-    inc r13
-    cmp r13, GRID_WIDTH
-    jne .loop
-
-    xor r13, r13
-    inc r12
-    cmp r12, GRID_HEIGHT
-    jne .loop
-
-.copy:
-    mov rdi, previous_dynamic_grid
-    mov rsi, dynamic_grid
-    mov rcx, dynamic_grid_len
-    rep movsb
-
-.ret:
-    pop r13
-    pop r12
-    ret
-;
-
-
-
-
-
 ; 다음 조각 미리보기 그리드 초기화 함수
-; input: 
-;   rdi = 서브 그리드 플래그(0 = next_piece, 1 = keep_piece)
-reset_subgrid:
 ; input: 
 ;   rdi = 서브 그리드 플래그(0 = next_piece, 1 = keep_piece)
 reset_subgrid:
@@ -493,23 +413,15 @@ reset_subgrid:
     mov rdi, [r10+Subgrid.grid]
     mov qword [rbp-8], rdi      ; 그리드 위치 저장
 
-    mov r10, [SUBGRIDS+rdi*8]    ; 서브 그리드 포인터
 
-    mov rdi, [r10+Subgrid.grid]
-    mov qword [rbp-8], rdi      ; 그리드 위치 저장
-
-
-    mov rdi, [r10+Subgrid.color_grid]
     mov rdi, [r10+Subgrid.color_grid]
     mov al, RESET
-    mov ecx, dword [r10+Subgrid.index_size]
     mov ecx, dword [r10+Subgrid.index_size]
     rep stosb
 
     xor rax, rax    ; 행
     xor rdx, rdx    ; 열
     xor r12, r12    ; 인덱스
-    movzx r13, byte [r10+Subgrid.width]
     movzx r13, byte [r10+Subgrid.width]
 .loop:
     mov rax, r12
@@ -522,7 +434,6 @@ reset_subgrid:
     
     cmp rax, 0
     je .top
-    cmp al, byte [r10+Subgrid.index_height]
     cmp al, byte [r10+Subgrid.index_height]
     je .bottom
 
@@ -537,7 +448,6 @@ reset_subgrid:
 .left_or_right:
     cmp rdx, 0
     je .left
-    cmp dl, byte [r10+Subgrid.index_width]
     cmp dl, byte [r10+Subgrid.index_width]
     je .right
 
@@ -582,11 +492,6 @@ reset_subgrid:
 .inserting_string:
     movzx rax, byte [rsi]
     mov byte [rdi], al
-    lea rsi, [r10+Subgrid.text]
-
-.inserting_string:
-    movzx rax, byte [rsi]
-    mov byte [rdi], al
     mov byte [rdi+1], 0
     mov byte [rdi+2], 0
     add rdi, 3
@@ -595,15 +500,7 @@ reset_subgrid:
     inc rdx
     cmp rdx, 4
     jle .inserting_string
-    inc rsi
-    
-    inc rdx
-    cmp rdx, 4
-    jle .inserting_string
 
-    ; 이후 인덱스 4개는 스킵
-    add r12, 3  ; 현재 인덱스 넘어가는 건 .string_inserted에 있기 때문에 3만 더함
-    jmp .string_inserted
     ; 이후 인덱스 4개는 스킵
     add r12, 3  ; 현재 인덱스 넘어가는 건 .string_inserted에 있기 때문에 3만 더함
     jmp .string_inserted
@@ -642,12 +539,9 @@ reset_subgrid:
     CHAR rdi, r11
 
 .string_inserted:
-.string_inserted:
     mov qword [rbp-8], rdi
 
     inc r12
-    cmp r12d, dword [r10+Subgrid.index_size]
-    jle .loop
     cmp r12d, dword [r10+Subgrid.index_size]
     jle .loop
 
@@ -665,9 +559,6 @@ reset_subgrid:
 ; input:
 ;   rdi = 서브 그리드 플래그(0 = next_piece, 1 = keep_piece)
 print_subgrid_line:
-; input:
-;   rdi = 서브 그리드 플래그(0 = next_piece, 1 = keep_piece)
-print_subgrid_line:
     push r12
     push r13
     push r14
@@ -678,12 +569,8 @@ print_subgrid_line:
     mov r10, [SUBGRIDS+rdi*8]
 
     movzx r12, byte [r10+Subgrid.line]    ; 출력할 줄
-    mov r10, [SUBGRIDS+rdi*8]
-
-    movzx r12, byte [r10+Subgrid.line]    ; 출력할 줄
 
     ; 스위치가 꺼져 있으면 종료
-    movzx rax, byte [r10+Subgrid.switch]
     movzx rax, byte [r10+Subgrid.switch]
     test al, al
     jz .ret
@@ -691,15 +578,11 @@ print_subgrid_line:
     mov rax, r12
     movzx rdx, byte [r10+Subgrid.width]
     imul rax, rdx
-    movzx rdx, byte [r10+Subgrid.width]
-    imul rax, rdx
     add rax, r13
 
     mov r14, rax
     imul r14, 3
 
-    mov rdi, qword [r10+Subgrid.color_grid]
-    movzx rdx, byte [rdi+rax]
     mov rdi, qword [r10+Subgrid.color_grid]
     movzx rdx, byte [rdi+rax]
 
@@ -717,20 +600,16 @@ print_subgrid_line:
 
     inc r13
     cmp r13b, byte [r10+Subgrid.width]
-    cmp r13b, byte [r10+Subgrid.width]
     jne .loop
 
     inc r12
-    cmp r12b, byte [r10+Subgrid.height]
     cmp r12b, byte [r10+Subgrid.height]
     jne .ret
 
     xor r12, r12
     mov byte [r10+Subgrid.switch], 0
-    mov byte [r10+Subgrid.switch], 0
 
 .ret:
-    mov byte [r10+Subgrid.line], r12b
     mov byte [r10+Subgrid.line], r12b
     pop r14
     pop r13
@@ -743,46 +622,8 @@ print_subgrid_line:
 ;   rdi = 서브 그리드 플래그
 ;   rsi = 조각 번호
 change_subgrid:
-; 서브 그리드에 표시하는 조각을 변경하는 함수
-; input:
-;   rdi = 서브 그리드 플래그
-;   rsi = 조각 번호
-change_subgrid:
     push r12
     push r13
-    push r14
-
-    mov r10, qword [SUBGRIDS+rdi*8]
-
-    ; 이전 조각과 동일하면 스킵
-    movzx rax, byte [r10+Subgrid.piece]
-    cmp rax, rsi
-    je .ret
-
-    mov byte [r10+Subgrid.piece], sil
-
-    mov r12, 1      ; 행
-    mov r13, 1      ; 열
-    mov r14, rsi    ; 조각 번호 저장
-    ; 맵 초기화
-.reset_map:
-    mov rax, r12
-    movzx rdx, byte [r10+Subgrid.width]
-    imul rax, rdx
-    add rax, r13
-    
-    ; 색 인덱스 초기화
-    mov rdi, qword [r10+Subgrid.color_grid]
-    mov byte [rdi+rax], RESET
-
-    imul rax, 3
-
-
-    ; 출력 인덱스 초기화
-    mov rdi, qword [r10+Subgrid.grid]
-    add rdi, rax
-    CHAR rdi, SPACE
-
     push r14
 
     mov r10, qword [SUBGRIDS+rdi*8]
@@ -824,53 +665,7 @@ change_subgrid:
     ; 다음 행 이동 시 열을 1로 초기화
     mov r13, 1
 
-    cmp r13b, byte [r10+Subgrid.index_width]
-    jl .reset_map
-
-    
-    ; 다음 행 이동 시 열을 1로 초기화
-    mov r13, 1
-
     inc r12
-    cmp r12b, byte [r10+Subgrid.index_height]
-    jl .reset_map
-
-
-
-    xor r11, r11    ; 카운터
-    xor r12, r12    ; 상대 행
-    xor r13, r13    ; 상대 열
-    mov r8, r14
-    imul r8, PIECE_SIZE
-    add r8, PIECES
-.set_blocks:
-    mov r12b, byte [r8]
-    mov r13b, byte [r8+1]
-    add r8, 2
-
-    add r12b, 3  ; 3,2 기준
-    add r13b, 2  ;
-
-    mov rax, r12
-    movzx rdx, byte [r10+Subgrid.width]
-    imul rax, rdx
-    add rax, r13
-
-    mov r9, r14
-    inc r9
-    mov rdi, qword [r10+Subgrid.color_grid]
-    mov byte [rdi+rax], r9b
-    
-    imul rax, 3
-
-
-    mov rdi, qword [r10+Subgrid.grid]
-    add rdi, rax
-    CHAR rdi, BOX
-
-    inc r11
-    cmp r11, 4
-    jl .set_blocks
     cmp r12b, byte [r10+Subgrid.index_height]
     jl .reset_map
 
@@ -913,12 +708,10 @@ change_subgrid:
 
 .ret:
     pop r14
-    pop r14
     pop r13
     pop r12
     ret
 ;
-
 
 
 ; 점수를 출력하는 함수
@@ -927,11 +720,7 @@ print_score:
     mov rbp, rsp
     sub rsp, 32
 
-    mov rax, 1
-    mov rdi, 1
-    mov rsi, score_text
-    mov rdx, score_text_len
-    syscall
+    PRNT score_text
 
     xor rdi, rdi
     mov edi, dword [score]

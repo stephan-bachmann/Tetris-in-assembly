@@ -74,14 +74,6 @@ _start:
     inc rsi
     call change_subgrid
     
-    xor rdi, rdi
-    mov rsi, r12
-    call change_subgrid
-    mov rdi, 1
-    mov rsi, r12
-    inc rsi
-    call change_subgrid
-    
 .l:
     inc r14
     PRNT clear
@@ -92,6 +84,7 @@ _start:
     call update_center_block_coordinate
     call update_coordinate
     call check_collision
+
     mov r15, rax
 
     mov rdi, rax
@@ -106,7 +99,7 @@ _start:
 
     mov rdi, 1
     call linefeed
-
+    
     call update_dynamic_grid
 
 
@@ -116,6 +109,8 @@ _start:
     call print_small_grid
 
     call fixing_piece
+    
+
     mov rdi, 1
     mov rsi, 0
     call sleep
@@ -139,8 +134,6 @@ _start:
     inc r12
     cmp r12, 7
     jne .ll
-
-    jmp .lll
 
     jmp .lll
 

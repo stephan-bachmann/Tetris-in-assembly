@@ -193,16 +193,9 @@ section .bss
     LEN color_grid
 
     next_piece_grid: resb SUB_SIZE_3
-    next_piece_grid: resb SUB_SIZE_3
     LEN next_piece_grid
     next_piece_color_grid: resb SUB_SIZE_1
-    next_piece_color_grid: resb SUB_SIZE_1
     LEN next_piece_color_grid
-
-    keep_piece_grid: resb SUB_SIZE_3
-    LEN keep_piece_grid
-    keep_piece_color_grid: resb SUB_SIZE_1
-    LEN keep_piece_color_grid
 
     keep_piece_grid: resb SUB_SIZE_3
     LEN keep_piece_grid
