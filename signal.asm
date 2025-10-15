@@ -1,5 +1,7 @@
 default rel
 
+%include "macros.inc"
+
 %define SYS_rt_sigaction  13
 %define SYS_rt_sigreturn  15
 %define SYS_timer_create  222
@@ -9,18 +11,8 @@ default rel
 %define SIGUSR2           12
 %define SA_RESTART        0x10000000
 %define SA_RESTORER       0x04000000
-%macro PRNT 1
-    mov rax, 1
-    mov rdi, 1
-    mov rsi, %1
-    mov rdx, %1_len
-    syscall
-%endmacro
 
-
-%macro LEN 1
-    %1_len equ $ - %1
-%endmacro
+global second_1_ticks, second_0_1_ticks
 
 section .data
     sec_1: db "1sec", 0xa
@@ -69,12 +61,12 @@ section .data
 
     its_usr1:
         dq 1, 0                 ; it_interval: 1s, 0ns
-        dq 3, 0                 ; it_value   : 1s, 0ns (즉시 arm; 처음 만료 1초 뒤)
+        dq 1, 0                 ; it_value   : 1s, 0ns (즉시 arm; 처음 만료 1초 뒤)
 
 
     its_usr2:
         dq 0, 100000000         ; it_interval: 0s, 100000000ns
-        dq 3, 0         ; it_value   : 0s, 100000000ns
+        dq 0, 100000000         ; it_value   : 0s, 100000000ns
 
 section .bss
     timerid_usr1:   resq 1
@@ -84,12 +76,10 @@ section .text
 
 usr1_handler:
     inc qword [second_1_ticks]
-    PRNT sec_1
     ret
 
 usr2_handler:
     inc qword [second_0_1_ticks]
-    PRNT sec_0_1
     ret
 
 restorer:
