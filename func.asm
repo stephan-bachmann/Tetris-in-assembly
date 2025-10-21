@@ -21,14 +21,20 @@ global set_score
 global save_tty, restore_tty
 global check_collision
 global fixing_piece
+global check_0_1, check_1
 IMPORT dynamic_grid
 IMPORT previous_dynamic_grid
 IMPORT color_grid
-extern PIECES
+extern PIECES, SUBGRIDS
 extern active_piece, active_piece_state
 extern previous_active_piece
 extern orig_termios, orig_flags, raw_termios
-extern score
+extern score, is_kept
+extern input_buffer
+extern second_0_1_ticks, second_1_ticks
+extern update_static_grid, print_static_grid, print_small_grid
+IMPORT cursor_visible
+IMPORT clear
 
 section .text
 
@@ -379,6 +385,8 @@ check_collision:
 
     mov dl, byte [dynamic_grid+rax]
     cmp dl, SPACE
+    je .next
+    cmp dl, ACTIVATED
     jne .ret
 
 .next:
@@ -422,12 +430,14 @@ fixing_piece:
 
     mov byte [dynamic_grid+rax], BOX
 
-    mov byte [active_piece+r15*2], 0
-    mov byte [active_piece+r15*2+1], 5
-
     inc r15
     cmp r15, 4
     jl .loop
+
+    mov byte [active_piece], 3
+    mov byte [active_piece+1], 5
+    
+    call update_coordinate
 
     pop r15
     pop r14
@@ -436,3 +446,152 @@ fixing_piece:
     ret
 ;
 
+
+
+; 활성 조각을 조작하는 함수
+AP_left:
+    dec byte [active_piece+1]
+    ret
+
+AP_right:
+    inc byte [active_piece+1]
+    ret
+
+AP_down:
+    inc byte [active_piece]
+    ret
+
+AP_up:
+    dec byte [active_piece]
+    ret
+
+
+
+
+check_0_1:
+    mov byte [input_buffer], 0
+    mov rax, 0
+    mov rdi, 0
+    mov rsi, input_buffer
+    mov rdx, 1
+    syscall
+
+    cmp rax, 1
+    jne .ret
+
+    cmp byte [input_buffer], 'q'
+    je .exit
+
+.next:
+    cmp qword [second_0_1_ticks], 0
+    je .ret
+
+    mov qword [second_0_1_ticks], 0
+
+
+    cmp byte [input_buffer], 'a'
+    je .left
+    cmp byte [input_buffer], 's'
+    je .down
+    cmp byte [input_buffer], 'd'
+    je .right
+    cmp byte [input_buffer], 'j'
+    je .rotate
+    cmp byte [input_buffer], 'k'
+    je .keep
+
+    jmp .ret
+
+.left:
+    call AP_left
+    call update_coordinate
+    call check_collision
+    cmp rax, 0
+    je .changed
+
+    call AP_right
+    call update_coordinate
+    jmp .ret
+
+    
+.down:
+    call AP_down
+    call update_coordinate
+    call check_collision
+    cmp rax, 0
+    je .changed
+
+    call AP_up
+    call update_coordinate
+    jmp .ret
+    
+
+.right:
+    call AP_right
+    call update_coordinate
+    call check_collision
+    cmp rax, 0
+    je .changed
+
+    call AP_left
+    call update_coordinate
+    jmp .ret
+
+.rotate:
+    call rotate_piece
+    call update_coordinate
+    call check_collision
+    cmp rax, 0
+    je .changed
+
+    call rotate_piece
+    call rotate_piece
+    call rotate_piece
+    call update_coordinate
+    jmp .ret
+
+.keep:
+    jmp .ret
+
+.changed:
+    PRNT clear
+    call update_dynamic_grid
+    call update_static_grid
+    call print_static_grid
+
+
+.ret:
+    ret
+
+.exit:
+    PRNT cursor_visible
+    call restore_tty
+    mov rax, 60
+    xor rdi, rdi
+    syscall
+
+
+
+check_1:
+    cmp qword [second_1_ticks], 0
+    je .ret
+
+    mov qword [second_1_ticks], 0
+
+    call AP_down
+    call update_coordinate
+    call check_collision
+    cmp rax, 0
+    je .changed
+
+    call AP_up
+    call update_coordinate
+    call fixing_piece
+
+.changed:
+    PRNT clear
+    call update_dynamic_grid
+    call update_static_grid
+    call print_static_grid
+.ret:
+    ret

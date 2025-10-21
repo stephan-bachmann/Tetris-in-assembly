@@ -294,14 +294,20 @@ print_static_grid:
     jmp .next
 
 .linefeed:
-    ; 히든 다음부터 다음 조각 출력
     inc r15
+    ; 히든이면 점수 출력
+    cmp r15, HIDDEN
+    jne .skip_score
+
+    call print_score
+
+.skip_score:    
+    ; 히든 다음부터 다음 조각 출력
     cmp r15, HIDDEN
     jle .skip_next_piece
 
     xor rdi, rdi
     call print_subgrid_line
-
 .skip_next_piece:
 
     mov r8, HIDDEN

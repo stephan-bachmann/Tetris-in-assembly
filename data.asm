@@ -13,10 +13,11 @@ global COLORS, CHARS, PIECES, SUBGRIDS
 global active_piece, active_piece_state
 global previous_active_piece
 global orig_termios, raw_termios, orig_flags
-global score
+global score, is_kept
+global input_buffer
 
 section .rodata
-    clear: db 0x1b, "[2J"
+    clear: db 0x1b, "[2J", 0x1b, "[H"
     LEN clear
 
     clear_set: db 0x1b, "[H", 0x1b, "[?25l"
@@ -27,6 +28,8 @@ section .rodata
 
     score_text: db "SCORE "
     LEN score_text
+
+    
 
 
     C_BLACK:      db 0x1b, "[90m"
@@ -127,6 +130,7 @@ section .rodata
 
 section .data
     score: dd 0
+    is_kept: db 0
 
     next_piece:
         istruc Subgrid
@@ -205,3 +209,5 @@ section .bss
     orig_termios: resb 64     ; 원래 termios 저장용
     orig_flags:   resq 1      ; 원래 fcntl flags 저장용
     raw_termios:  resb 64     ; 수정본 임시 버퍼
+
+    input_buffer: resb 1

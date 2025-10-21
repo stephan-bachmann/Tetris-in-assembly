@@ -28,6 +28,7 @@ section .data
     txt2_len equ $ - txt2
     failed2: db "2 failed", 0xa
     failed2_len equ $ - failed2
+
     global second_1_ticks, second_0_1_ticks
     second_1_ticks:     dq 0 ; 64비트 정수
     second_0_1_ticks:   dq 0 ; 64비트 정수
@@ -94,23 +95,6 @@ install_second_alarm:
     xor     rdx, rdx                     ; oldact = NULL
     mov     r10, 8                       ; sizeof(sigset_t)
     syscall
-
-    test rax, rax
-    js  .sigusr1_fail 
-    mov rax, 1
-    mov rdi, 1
-    mov rsi, txt1
-    mov rdx, txt1_len
-    syscall
-    ret
-
-.sigusr1_fail:
-    mov rax, 1
-    mov rdi, 1
-    mov rsi, failed1
-    mov rdx, failed1_len
-    syscall
-
     ret
 
 
@@ -120,22 +104,6 @@ install_0_1_second_alarm:
     lea     rsi, [sa_usr2]
     xor     rdx, rdx                     ; oldact = NULL
     mov     r10, 8                       ; sizeof(sigset_t)
-    syscall
-
-    test rax, rax
-    js  .sigusr1_fail 
-    mov rax, 1
-    mov rdi, 1
-    mov rsi, txt2
-    mov rdx, txt2_len
-    syscall
-    ret
-
-.sigusr1_fail:
-    mov rax, 1
-    mov rdi, 1
-    mov rsi, failed2
-    mov rdx, failed2_len
     syscall
     ret
 
@@ -152,13 +120,7 @@ set_timers:
     lea rdx, [timerid_usr1]
     syscall
 
-    ; timer_settime(timerid_usr1, 0, &its_usr1, NULL)
-    mov rax, SYS_timer_settime
-    mov rdi, qword [timerid_usr1]  ; timer_t value
-    xor rsi, rsi                  ; flags = 0 (relative)
-    lea rdx, [its_usr1]
-    xor r10, r10                  ; old = NULL
-    syscall
+    call timer_1_set
 
 
 
@@ -169,12 +131,28 @@ set_timers:
     lea rdx, [timerid_usr2]
     syscall
 
-    ; timer_settime(timerid_usr2, 0, &its_usr2, NULL)
-    mov rax, SYS_timer_settime
-    mov rdi, qword [timerid_usr2]
-    xor rsi, rsi
-    lea rdx, [its_usr2]
-    xor r10, r10
-    syscall
+    call timer_0_1_set
 
+    ret
+
+
+; 1초 타이머 시간을 초기화함
+timer_1_set:
+    ; timer_settime(timerid_usr1, 0, &its_usr1, NULL)
+    mov rax, SYS_timer_settime
+    mov rdi, qword [timerid_usr1]  ; timer_t value
+    xor rsi, rsi                  ; flags = 0 (relative)
+    lea rdx, [its_usr1]
+    xor r10, r10                  ; old = NULL
+    syscall
+    ret
+
+; 0.1초 타이머 시간을 초기화함
+timer_0_1_set:
+    mov rax, SYS_timer_settime
+    mov rdi, qword [timerid_usr2]  ; timer_t value
+    xor rsi, rsi                  ; flags = 0 (relative)
+    lea rdx, [its_usr2]
+    xor r10, r10                  ; old = NULL
+    syscall
     ret
