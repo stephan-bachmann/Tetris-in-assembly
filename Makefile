@@ -2,7 +2,7 @@ ASM = nasm
 ASMFLAGS = -felf64 -g -F dwarf
 LD = ld
 
-OBJS = main.o func.o data.o util.o graphic.o
+OBJS = main.o func.o data.o util.o graphic.o signal.o
 TARGET = app
 
 all: $(TARGET)
