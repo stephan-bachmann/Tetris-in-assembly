@@ -5,7 +5,8 @@ default rel
 
 
 %macro SET_PIECE 1
-    mov byte [active_piece_state], %1
+    mov rax, %1
+    mov byte [active_piece_state], al
     mov byte [active_piece_state+1], 0
 %endmacro
 
@@ -22,6 +23,7 @@ global save_tty, restore_tty
 global check_collision
 global fixing_piece
 global check_0_1, check_1
+global get_piece
 IMPORT dynamic_grid
 IMPORT previous_dynamic_grid
 IMPORT color_grid
@@ -33,6 +35,7 @@ extern score, is_kept
 extern input_buffer
 extern second_0_1_ticks, second_1_ticks
 extern update_static_grid, print_static_grid, print_small_grid
+extern change_subgrid
 IMPORT cursor_visible
 IMPORT clear
 
@@ -436,6 +439,8 @@ fixing_piece:
 
     mov byte [active_piece], 3
     mov byte [active_piece+1], 5
+
+    call get_piece
     
     call update_coordinate
 
@@ -446,6 +451,50 @@ fixing_piece:
     ret
 ;
 
+;handle SIGUSR1 nostop noprint nopass
+;handle SIGUSR2 nostop noprint nopass
+
+; 다음 조각을 랜덤으로 정하는 함수
+; return
+;   rax = 다음 조각 정수
+set_next_piece:
+    rdrand rax
+    mov rcx, PIECE_COUNT
+    xor rdx, rdx
+    
+    div rcx
+
+    push rdx
+    mov rdi, 0
+    mov rsi, rdx
+    call change_subgrid
+
+    pop rdx
+    mov r10, [SUBGRIDS]
+    lea r11, qword [r10+Subgrid.piece]
+
+    mov byte [r11], dl
+
+
+    mov rax, rdx
+    ret
+
+
+; 활성 조각을 다음 조각에서 가져오는 함수
+get_piece:
+    mov r10, [SUBGRIDS]
+    xor r11, r11
+    mov r11b, byte [r10+Subgrid.piece]
+
+    cmp r11b, -1
+    je .ret
+    
+    SET_PIECE r11
+
+.ret:
+    call set_next_piece
+    ret
+    
 
 
 ; 활성 조각을 조작하는 함수

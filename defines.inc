@@ -38,6 +38,7 @@ O equ 3
 S equ 4
 T equ 5
 Z equ 6
+PIECE_COUNT equ 7
 
 
 BLACK equ 0

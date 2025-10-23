@@ -295,6 +295,7 @@ print_static_grid:
 
 .linefeed:
     inc r15
+    inc r15
     ; 히든이면 점수 출력
     cmp r15, HIDDEN
     jne .skip_score
@@ -302,6 +303,7 @@ print_static_grid:
     call print_score
 
 .skip_score:    
+    dec r15
     ; 히든 다음부터 다음 조각 출력
     cmp r15, HIDDEN
     jle .skip_next_piece

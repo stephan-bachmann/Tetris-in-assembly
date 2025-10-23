@@ -34,6 +34,7 @@ extern itoa
 extern fixing_piece
 extern set_timers
 extern check_0_1, check_1
+extern get_piece
 
 section .text
 
@@ -55,8 +56,11 @@ _start:
     jle .color_set
     mov byte [color_grid+rax], BLACK
     
-    mov rdi, 1000
+    mov rdi, 0
     call set_score
+
+    call get_piece
+    call get_piece
 
     mov rdi, 3
     mov rsi, 5
