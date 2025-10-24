@@ -13,6 +13,8 @@ default rel
 %define SA_RESTORER       0x04000000
 
 global second_1_ticks, second_0_1_ticks
+global timer_0_1_set
+global timer_1_set
 
 section .data
     sec_1: db "1sec", 0xa

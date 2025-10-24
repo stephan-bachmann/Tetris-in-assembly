@@ -69,7 +69,6 @@ _start:
     call update_dynamic_grid
     call update_static_grid
 
-
 .l:
 
     call check_0_1

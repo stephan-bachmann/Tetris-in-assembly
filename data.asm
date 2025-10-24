@@ -15,6 +15,7 @@ global previous_active_piece
 global orig_termios, raw_termios, orig_flags
 global score, is_kept
 global input_buffer
+global piece_kept
 
 section .rodata
     clear: db 0x1b, "[2J", 0x1b, "[H"
@@ -211,3 +212,5 @@ section .bss
     raw_termios:  resb 64     ; 수정본 임시 버퍼
 
     input_buffer: resb 1
+
+    piece_kept: resb 1

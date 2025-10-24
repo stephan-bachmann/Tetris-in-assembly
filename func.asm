@@ -36,6 +36,8 @@ extern input_buffer
 extern second_0_1_ticks, second_1_ticks
 extern update_static_grid, print_static_grid, print_small_grid
 extern change_subgrid
+extern piece_kept
+extern timer_1_set
 IMPORT cursor_visible
 IMPORT clear
 
@@ -444,6 +446,8 @@ fixing_piece:
     
     call update_coordinate
 
+    mov byte [piece_kept], 0
+
     pop r15
     pop r14
     pop r13
@@ -493,6 +497,58 @@ get_piece:
 
 .ret:
     call set_next_piece
+    ret
+
+
+
+
+; 현재 활성 조각을 보관하는 함수
+keep_active_piece:
+    xor rax, rax
+    cmp byte [piece_kept], 0
+    jne .ret
+
+    mov byte [piece_kept], 1
+
+    ; 우선 위치 초기화
+    mov byte [active_piece], 3
+    mov byte [active_piece+1], 5
+
+    mov r10, qword [SUBGRIDS+8]
+    xor r11, r11
+    mov r11b, byte [r10+Subgrid.piece]
+
+    ; 보관된 조각이 있으면 서로 교환만
+    cmp r11b, -1
+    jne .swap
+
+    ; 보관된 조각이 없으면 현재 조각을 보관 조각에 저장
+    xor rax, rax
+    mov al, byte [active_piece_state]
+    push rax
+
+    ; 다음 조각을 현재 조각으로 변경
+    call get_piece
+    jmp .end
+    
+
+.swap:
+    xor rax, rax
+    xor rdx, rdx
+    mov al, byte [active_piece_state]
+    mov dl, byte [r10+Subgrid.piece]
+
+    push rax
+    SET_PIECE rdx
+
+.end:
+    mov r10, qword [SUBGRIDS+8]
+    mov rdi, 1
+    pop rsi
+    call change_subgrid
+
+    mov rax, 1
+.ret:
     ret
     
 
@@ -568,8 +624,11 @@ check_0_1:
     call update_coordinate
     call check_collision
     cmp rax, 0
-    je .changed
+    jne .no_reset_timer_1
+    call timer_1_set
+    jmp .changed
 
+.no_reset_timer_1:
     call AP_up
     call update_coordinate
     jmp .ret
@@ -600,7 +659,11 @@ check_0_1:
     jmp .ret
 
 .keep:
-    jmp .ret
+    call keep_active_piece
+    call update_coordinate
+    cmp rax, 0
+    je .ret
+    jmp .changed
 
 .changed:
     PRNT clear
