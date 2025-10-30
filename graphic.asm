@@ -19,19 +19,6 @@ RIGHT equ 2
 %endmacro
 
 
-; 파라미터가 rax로 전달되면 안 됨
-%macro CHAR 2
-    push rbx
-    mov rax, [CHARS+(%2*8)]
-    mov bl, byte [rax]
-    mov byte [%1], bl
-    mov bl, byte [rax+1]
-    mov byte [%1+1], bl
-    mov bl, byte [rax+2]
-    mov byte [%1+2], bl
-    add %1, CHAR_LEN
-    pop rbx
-%endmacro
 
 
 global set_grid

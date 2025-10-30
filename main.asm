@@ -44,17 +44,6 @@ _start:
     call set_grid
 
     PRNT clear_set
-    mov rax, GRID_HEIGHT
-    dec rax
-    imul rax, GRID_WIDTH
-    mov rdx, RED
-.color_set:
-    mov byte [color_grid+rax], dl
-    inc rdx
-    inc rax
-    cmp rdx, RESET
-    jle .color_set
-    mov byte [color_grid+rax], BLACK
     
     mov rdi, 0
     call set_score

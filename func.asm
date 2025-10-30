@@ -448,6 +448,8 @@ fixing_piece:
 
     mov byte [piece_kept], 0
 
+    call block_clear
+
     pop r15
     pop r14
     pop r13
@@ -455,11 +457,9 @@ fixing_piece:
     ret
 ;
 
-;handle SIGUSR1 nostop noprint nopass
-;handle SIGUSR2 nostop noprint nopass
 
 ; 다음 조각을 랜덤으로 정하는 함수
-; return
+; return:
 ;   rax = 다음 조각 정수
 set_next_piece:
     rdrand rax
@@ -482,6 +482,7 @@ set_next_piece:
 
     mov rax, rdx
     ret
+;
 
 
 ; 활성 조각을 다음 조각에서 가져오는 함수
@@ -498,7 +499,7 @@ get_piece:
 .ret:
     call set_next_piece
     ret
-
+;
 
 
 
@@ -550,6 +551,8 @@ keep_active_piece:
     mov rax, 1
 .ret:
     ret
+;
+
     
 
 
@@ -681,7 +684,7 @@ check_0_1:
     mov rax, 60
     xor rdi, rdi
     syscall
-
+;
 
 
 check_1:
@@ -707,3 +710,134 @@ check_1:
     call print_static_grid
 .ret:
     ret
+;
+
+
+;handle SIGUSR1 nostop noprint pass
+;handle SIGUSR2 nostop noprint pass
+
+; 채워진 줄이 있으면 처리하는 함수
+block_clear:
+    push r12
+    push r13
+    xor r13, r13
+
+    mov r12, MAP_HEIGHT
+
+.loop:
+    mov rdi, r12
+    call check_line
+
+    cmp rax, 1
+    jne .skip_down
+
+    mov rdi, r12
+    call down_line
+    inc r13
+    jmp .loop
+
+.skip_down:
+    LOOP_FROM_TO r12, 0, .loop, DECREMENT
+
+.calc_score:
+    cmp r13, 0
+    je .ret
+.one:
+    cmp r13, 1
+    jne .two
+    mov rdi, 100
+    call add_score
+    jmp .ret
+.two:
+    cmp r13, 2
+    jne .three
+    mov rdi, 300
+    call add_score
+    jmp .ret
+.three:
+    cmp r13, 3
+    jne .four
+    mov rdi, 600
+    call add_score
+    jmp .ret
+.four:
+    mov rdi, 1500
+    call add_score
+
+
+.ret:
+    pop r13
+    pop r12
+    ret
+;
+
+; 한 줄이 블록으로 채워져 있는지 확인하는 함수
+; input:
+;   rdi = 체크할 행
+; return:
+;   rax = 채워져 있는지 여부
+check_line:
+    xor r8, r8
+    xor r9, r9
+    
+    mov rsi, 1
+    call get_logic_index
+    mov r10, rax
+
+.loop:
+    cmp byte [dynamic_grid+r10+r9], BOX
+    jne .ret
+
+    LOOP_FROM_TO r9, MAP_WIDTH, .loop
+
+    inc r8
+
+.ret:
+    mov rax, r8
+    ret
+;
+
+; 행 번호를 주면 해당 행을 제거하고 윗행에 있는 블록들을 한 칸씩 내리는 함수
+; input:
+;   rdi = 제거할 행
+down_line:
+    push r12
+    mov r8, rdi
+    xor r9, r9
+    xor r10, r10
+    xor r11, r11
+
+
+.line_loop:
+    xor r12, r12
+    mov rdi, r8
+    mov rsi, 1
+    call get_logic_index
+    mov r9, rax                  ; 아랫줄 포인터
+
+    mov rdi, r8
+    dec rdi
+    mov rsi, 1
+    call get_logic_index
+    mov r10, rax                 ; 윗줄 포인터
+
+
+.block_loop:
+    cmp byte [dynamic_grid+r10+r12], ACTIVATED
+    je .activate_skip
+
+    mov r11b, byte [dynamic_grid+r10+r12]
+    mov byte [dynamic_grid+r9+r12], r11b
+    mov r11b, byte [color_grid+r10+r12]
+    mov byte [color_grid+r9+r12], r11b
+
+
+.activate_skip:
+    LOOP_FROM_TO r12, MAP_WIDTH, .block_loop
+    
+    LOOP_FROM_TO r8, HIDDEN, .line_loop, DECREMENT
+
+.ret:
+    pop r12
+    ret
+;
