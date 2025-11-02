@@ -9,6 +9,7 @@ EXPORT clear
 EXPORT clear_set
 EXPORT cursor_visible
 EXPORT score_text
+EXPORT game_over_text
 global COLORS, CHARS, PIECES, SUBGRIDS
 global active_piece, active_piece_state
 global previous_active_piece
@@ -16,6 +17,7 @@ global orig_termios, raw_termios, orig_flags
 global score, is_kept
 global input_buffer
 global piece_kept
+global piece_flag, used_piece_count
 
 section .rodata
     clear: db 0x1b, "[2J", 0x1b, "[H"
@@ -29,6 +31,9 @@ section .rodata
 
     score_text: db "SCORE "
     LEN score_text
+
+    game_over_text: db "GAME OVER", 0xa
+    LEN game_over_text
 
     
 
@@ -132,6 +137,11 @@ section .rodata
 section .data
     score: dd 0
     is_kept: db 0
+
+    piece_flag:
+    times PIECE_COUNT db 1
+
+    used_piece_count: db 0
 
     next_piece:
         istruc Subgrid

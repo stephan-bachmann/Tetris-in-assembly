@@ -28,6 +28,8 @@ REAL_WIDTH equ 13
 %assign PIECE_SIZE DEGREE_SIZE * 4  ; 각도 4개
 
 
+INITIAL_ROW equ 2
+INITIAL_COLUMN equ 5
 
 
 

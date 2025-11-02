@@ -37,9 +37,11 @@ extern second_0_1_ticks, second_1_ticks
 extern update_static_grid, print_static_grid, print_small_grid
 extern change_subgrid
 extern piece_kept
+extern piece_flag, used_piece_count
 extern timer_1_set
 IMPORT cursor_visible
 IMPORT clear
+IMPORT game_over_text
 
 section .text
 
@@ -439,8 +441,8 @@ fixing_piece:
     cmp r15, 4
     jl .loop
 
-    mov byte [active_piece], 3
-    mov byte [active_piece+1], 5
+    mov byte [active_piece], INITIAL_ROW
+    mov byte [active_piece+1], INITIAL_COLUMN
 
     call get_piece
     
@@ -449,6 +451,8 @@ fixing_piece:
     mov byte [piece_kept], 0
 
     call block_clear
+    call is_game_over
+
 
     pop r15
     pop r14
@@ -468,7 +472,29 @@ set_next_piece:
     
     div rcx
 
+    ; 중복 검사
+    cmp byte [piece_flag+rdx], 0
+    je set_next_piece
+
+    ; 사용 표시
     push rdx
+    mov byte [piece_flag+rdx], 0
+
+    inc byte [used_piece_count]
+
+    ; 플래그 검사 및 초기화
+    cmp byte [used_piece_count], PIECE_COUNT
+    jne .skip_reset_flags
+
+    mov rdi, piece_flag
+    mov al, 1
+    mov rcx, PIECE_COUNT
+    rep stosb 
+
+    mov byte [used_piece_count], 0
+
+.skip_reset_flags:
+
     mov rdi, 0
     mov rsi, rdx
     call change_subgrid
@@ -512,8 +538,8 @@ keep_active_piece:
     mov byte [piece_kept], 1
 
     ; 우선 위치 초기화
-    mov byte [active_piece], 3
-    mov byte [active_piece+1], 5
+    mov byte [active_piece], INITIAL_ROW
+    mov byte [active_piece+1], INITIAL_COLUMN
 
     mov r10, qword [SUBGRIDS+8]
     xor r11, r11
@@ -627,11 +653,11 @@ check_0_1:
     call update_coordinate
     call check_collision
     cmp rax, 0
-    jne .no_reset_timer_1
+    jne .no_reset_timer_1_down
     call timer_1_set
     jmp .changed
 
-.no_reset_timer_1:
+.no_reset_timer_1_down:
     call AP_up
     call update_coordinate
     jmp .ret
@@ -653,8 +679,11 @@ check_0_1:
     call update_coordinate
     call check_collision
     cmp rax, 0
-    je .changed
+    jne .no_reset_timer_1_rotate
+    call timer_1_set
+    jmp .changed
 
+.no_reset_timer_1_rotate:
     call rotate_piece
     call rotate_piece
     call rotate_piece
@@ -834,10 +863,37 @@ down_line:
 
 .activate_skip:
     LOOP_FROM_TO r12, MAP_WIDTH, .block_loop
-    
     LOOP_FROM_TO r8, HIDDEN, .line_loop, DECREMENT
 
 .ret:
     pop r12
     ret
 ;
+
+
+; 게임 오버 조건을 확인하는 함수
+is_game_over:
+    mov r8, HIDDEN  ; 행
+    dec r8
+    mov r9, 1       ; 열
+.check_hidden:
+    mov rdi, r8
+    mov rsi, r9
+    call get_logic_index
+    cmp byte [dynamic_grid+rax], BOX
+    je .over
+
+    LOOP_FROM_TO r9, MAP_WIDTH, .check_hidden
+    jmp .not_over
+
+.over:
+    PRNT game_over_text
+    PRNT cursor_visible
+    call restore_tty
+
+    mov rax, 60
+    xor rdi, rdi
+    syscall
+
+.not_over:
+    ret
