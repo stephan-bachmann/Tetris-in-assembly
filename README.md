@@ -1,3 +1,10 @@
+# ⚠️ Disclaimer
+
+- This project is for educational/personal use only.
+- Commercial use is prohibited.
+- Use at your own risk.
+
+
 # 제작 과정
 - [Velog](https://velog.io/@edelkatze/Day-15-Tetris1)
 
