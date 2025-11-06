@@ -1,6 +1,7 @@
 global sleep
 global linefeed
 global itoa
+global atoi
 
 ; 지연 함수
 ; input:
@@ -122,3 +123,52 @@ itoa:
 
 ;
 
+; 숫자 문자열을 정수로 바꿔주는 함수
+; input:
+;   rdi = 변환할 문자열 주소
+; reuturn:
+;   rax = 변환된 정수
+atoi:
+.setup:
+    push rdi
+    push rbx
+    push rcx
+
+    xor rax, rax
+    xor rcx, rcx
+    mov rbx, 10
+
+.to_int: 
+    mov al, byte [rdi]
+    push rax    ; 참조한 메모리 값 저장
+    cmp al, 0x0
+    je .ret
+
+    mov rax, rcx
+    mul rbx
+    mov rcx, rax
+
+    pop rax     ; 재사용
+    cmp al, 0x30
+    jb .not_integer
+    cmp al, 0x39
+    ja .not_integer
+
+    sub al, 0x30
+    add rcx, rax
+    inc rdi
+    jmp .to_int
+
+.not_integer:
+
+.ret:
+    pop rax     ; push 한 번 남은 것 제거
+    mov rax, rcx
+    
+    pop rcx
+    pop rbx
+    pop rdi
+    ret
+
+
+;

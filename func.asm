@@ -27,6 +27,11 @@ global get_piece
 IMPORT dynamic_grid
 IMPORT previous_dynamic_grid
 IMPORT color_grid
+IMPORT cursor_visible
+IMPORT clear
+IMPORT game_over_text
+IMPORT filename
+IMPORT new_record_text
 extern PIECES, SUBGRIDS
 extern active_piece, active_piece_state
 extern previous_active_piece
@@ -39,9 +44,7 @@ extern change_subgrid
 extern piece_kept
 extern piece_flag, used_piece_count
 extern timer_1_set
-IMPORT cursor_visible
-IMPORT clear
-IMPORT game_over_text
+extern itoa, linefeed, atoi
 
 section .text
 
@@ -598,7 +601,7 @@ AP_down:
 AP_up:
     dec byte [active_piece]
     ret
-
+;
 
 
 
@@ -633,6 +636,8 @@ check_0_1:
     je .rotate
     cmp byte [input_buffer], 'k'
     je .keep
+    cmp byte [input_buffer], ' '
+    je .right_down
 
     jmp .ret
 
@@ -696,6 +701,23 @@ check_0_1:
     cmp rax, 0
     je .ret
     jmp .changed
+
+
+.right_down:
+    call AP_down
+    call update_coordinate
+    call check_collision
+    cmp rax, 0
+    je .right_down
+    
+    call AP_up
+    call update_coordinate
+    PRNT clear
+    call update_dynamic_grid
+    call update_static_grid
+    call print_static_grid
+    call fixing_piece
+    jmp .ret
 
 .changed:
     PRNT clear
@@ -888,6 +910,21 @@ is_game_over:
 
 .over:
     PRNT game_over_text
+
+    call read_high_score
+    cmp eax, dword [score]
+    jge .not_new_record
+
+    xor rdi, rdi
+    mov edi, dword [score]
+    call write_high_score
+    mov rdi, 1
+    call linefeed
+    PRNT new_record_text
+    mov rdi, 1
+    call linefeed
+
+.not_new_record:
     PRNT cursor_visible
     call restore_tty
 
@@ -897,3 +934,85 @@ is_game_over:
 
 .not_over:
     ret
+;
+
+
+
+
+; 최고 점수를 읽어오는 함수
+; return:
+;   rax = 최고 점수
+read_high_score:
+    push rbp
+    mov rbp, rsp
+    sub rsp, 0x100
+
+
+    mov rax, 0x101
+    mov rdi, -100
+    mov rsi, filename
+    mov rdx, 0x42  ; O_RDWR | O_CREAT
+    mov r10, 0600o  ; rw-------
+    syscall
+    
+    mov r8, rax
+
+    xor rax, rax
+    mov rdi, r8
+    lea rsi, [rbp-0x100]
+    mov rdx, 0x100
+    syscall
+
+    mov rax, 3
+    mov rdi, r8
+    syscall
+
+    lea rdi, [rbp-0x100]
+    call atoi
+
+    add rsp, 0x100
+    pop rbp
+    ret
+;
+
+
+
+
+; 최고 점수를 변경하는 함수
+; input:
+;   rdi = 새 점수
+write_high_score:
+    push rbp
+    mov rbp, rsp
+    sub rsp, 0x100
+
+
+    lea rsi, [rbp-0x100]
+    call itoa
+    push rax
+
+    mov rax, 0x101
+    mov rdi, -100
+    mov rsi, filename
+    mov rdx, 0x242  ; O_RDWR | O_CREAT | O_TRUNC
+    mov r10, 0600o  ; rw-------
+    syscall
+
+    mov r8, rax
+
+    
+    mov rax, 1
+    mov rdi, r8
+    lea rsi, [rbp-0x100]
+    pop rdx
+    syscall
+
+
+    mov rax, 3
+    mov rdi, r8
+    syscall
+
+    add rsp, 0x100
+    pop rbp
+    ret
+;

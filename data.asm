@@ -10,6 +10,8 @@ EXPORT clear_set
 EXPORT cursor_visible
 EXPORT score_text
 EXPORT game_over_text
+EXPORT new_record_text
+EXPORT filename
 global COLORS, CHARS, PIECES, SUBGRIDS
 global active_piece, active_piece_state
 global previous_active_piece
@@ -32,9 +34,14 @@ section .rodata
     score_text: db "SCORE "
     LEN score_text
 
+    new_record_text: db "NEW RECORD!"
+    LEN new_record_text
+
     game_over_text: db "GAME OVER", 0xa
     LEN game_over_text
 
+    filename: db "data.tet", 0x0
+    LEN filename
     
 
 
