@@ -951,7 +951,7 @@ read_high_score:
     mov rax, 0x101
     mov rdi, -100
     mov rsi, filename
-    mov rdx, 0x42  ; O_RDWR | O_CREAT
+    mov rdx, 0x40  ; O_RDWR | O_CREAT
     mov r10, 0600o  ; rw-------
     syscall
     
